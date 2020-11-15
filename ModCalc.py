@@ -1,5 +1,6 @@
 from tkinter import *
 
+
 class ModCalc:
     def __init__(self, modulo):
         self.modulo = modulo
@@ -7,17 +8,19 @@ class ModCalc:
     ENTRY_WIDTH = 7
 
     def add(self, num1, num2):
-        return self.mod(num1+num2)
+        return self.mod(num1 + num2)
 
     def multiply(self, factor1, factor2):
-        return self.mod(factor1*factor2)
+        return self.mod(factor1 * factor2)
 
     def divide(self, dividend, divisor):
-        return self.mod(dividend/divisor)
+        return self.mod(dividend / divisor)
 
     def power(self, num, power):
-        return self.mod(num**power)
+        return self.mod(num ** power)
 
+    # creates a tkinter table of either addition, multiplication, exponentiation within a mod
+    # choose a range for the x and y axis and it operates on them in whatever the ModCalc's mod is
     def create_table(self, symbol, range1, range2, inc1=1, inc2=1):
         root = Tk()
         root.title("mod " + str(self.modulo))
@@ -58,6 +61,7 @@ class ModCalc:
             column += 1
         root.mainloop()
 
+    # mod 0 means no mod
     def mod(self, number):
         if self.modulo != 0:
             number %= self.modulo
@@ -65,3 +69,9 @@ class ModCalc:
 
     def set_mod(self, modulo):
         self.modulo = modulo
+
+
+def mod(number, modulo):
+    if modulo != 0:
+        number %= modulo
+    return number

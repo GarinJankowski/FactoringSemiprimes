@@ -136,7 +136,7 @@ def rational_sieve(n, bound=7):
     return prime_factors
 
 
-def quadratic_sieve(n, base_size=7):
+def quadratic_sieve(n, base_size=5):
     """
     MUCH faster than the rational sieve
     but just as inconsistent (I need to optimize it)
@@ -150,10 +150,9 @@ def quadratic_sieve(n, base_size=7):
     The resulting identity from the elimination tells us which combinations of rows produce a perfect square.
     We then get a congruence of squares from the relation of the square to a product of the x values of the square's factors.
     Finally, we can pop those roots into Euclid's algorithm and hopefully get some non-trivial factors.
-    If not, increment the size of the factor base and try again.
 
-    Beware: its so unoptimized that it can rerun too many times, go past the max recursion depth, and throw and error.
-    In reality this should actually only have to run once. We'll see if we can get there.
+    Beware: This thing is pretty unoptimized, and by that I mean it doesn't work most of the time.
+    We'll see if we can get some better polynomials going.
 
     :param n: semiprime to be factored
     :param base_size: size of the factor base
@@ -190,7 +189,7 @@ def quadratic_sieve(n, base_size=7):
     if not sqrt_n.is_integer():
         sqrt_n = int(sqrt_n+1)
     y_list = []
-    for i in range(500):
+    for i in range(1000):
         # POLYNOMIAL
         # try to make it better and tailor it to the number being factored
         value = int(math.pow(i + sqrt_n, 2) - n)
@@ -198,7 +197,7 @@ def quadratic_sieve(n, base_size=7):
     # print("y list:", y_list)
 
 # STEP 4
-    # sieve your y values for numbers where all their prime factors are in the factor base
+    # sieve your y values for numbers where all their prime factors are in the factor base and also unique (power of 1)
     # this gives us a list of numbers where we can try all of their product combinations to find a perfect square
     # maybe I could utilize Eratosthenes better here because I'm not really using it
     y_list_copy = copy.deepcopy(y_list)
@@ -207,7 +206,7 @@ def quadratic_sieve(n, base_size=7):
     for i in range(len(y_list)):
         # maybe also optimize this with Shanks-Tonelli
         for prime in factor_base:
-            while y_list_copy[i] % prime == 0:
+            if y_list_copy[i] % prime == 0:
                 y_list_copy[i] /= prime
         if y_list_copy[i] == 1:
             index = i + sqrt_n
@@ -215,39 +214,12 @@ def quadratic_sieve(n, base_size=7):
             value = y_list[i]
             z_list.append((index, value))
             parity_matrix.append(prime_factors_to_parity(sympy.factorint(value), factor_base))
-    i_index = [0 for i in factor_base]
-    i_increment_index = [1 for i in factor_base]
-    y_size = len(y_list)
-    # while len(i_index) > 0:
-    #     i = 0
-    #     while i < len(i_index):
-    #         if y_list_copy[i_index[i]] % factor_base[i] == 0:
-    #             if i_increment_index[i] == 1:
-    #                 i_increment_index[i] = factor_base[i]
-    #         while y_list_copy[i_index[i]] % factor_base[i] == 0:
-    #             y_list_copy[i_index[i]] /= factor_base[i]
-    #
-    #         if y_list_copy[i_index[i]] == 1:
-    #             index = i_index[i] + sqrt_n
-    #             # value = int(math.pow(i + sqrt_n, 2) - n)
-    #             value = y_list[i_index[i]]
-    #             tup = index, value
-    #             if tup not in z_list:
-    #                 z_list.append(tup)
-    #                 parity_matrix.append(prime_factors_to_parity(sympy.factorint(value), factor_base))
-    #
-    #         i_index[i] += i_increment_index[i]
-    #         if i_index[i] >= y_size:
-    #             i_index.pop(i)
-    #         else:
-    #             i += 1
 
     print("y list:", y_list)
     print("y list:", y_list_copy)
     print("z list:", z_list)
     Matrix.print_matrix(parity_matrix)
     if len(z_list) == 0:
-        # return quadratic_sieve(n, base_size+1)
         return None
 
 # STEP 5
@@ -256,23 +228,17 @@ def quadratic_sieve(n, base_size=7):
     # also for some reason all_possible_matrix_combinations keeps the answers from the last loop of the sieve,
     # so I have to specify that the list of answers should start out empty
 
-    # left_null_space = Matrix.left_null_space(parity_matrix)
-    # parity_matrix = Matrix.mod_matrix(left_null_space[0], 2)
-    # new_identity_matrix = Matrix.mod_matrix(left_null_space[1], 2)
-    # print()
-    # Matrix.print_matrix(parity_matrix)
-    # print()
-    # Matrix.print_matrix(new_identity_matrix)
-    # valid_combos = []
-    #
-    # for r in range(len(parity_matrix)):
-    #     if sum(parity_matrix[r]) == 0:
-    #         valid_combos.append(new_identity_matrix[r])
-    valid_combos = all_possible_matrix_combinations(parity_matrix)
+    left_null_space = Matrix.left_null_space(parity_matrix, 2)
+    parity_matrix = Matrix.mod_matrix(left_null_space[0], 2)
+    new_identity_matrix = Matrix.mod_matrix(left_null_space[1], 2)
+    valid_combos = []
+
+    for r in range(len(parity_matrix)):
+        if sum(parity_matrix[r]) == 0:
+            valid_combos.append(new_identity_matrix[r])
 
     print("valid combos:", valid_combos)
     if len(valid_combos) == 0 or len(valid_combos[0]) > len(z_list):
-        # return quadratic_sieve(n, base_size+1)
         return None
 
 # STEP 6
@@ -287,14 +253,125 @@ def quadratic_sieve(n, base_size=7):
             square_a *= z_list[i][0]
             square_b *= z_list[i][1]
         square_b = int(math.sqrt(square_b))
-        # print(combo, square_a, square_b, "\r")
+        print(combo, square_a, square_b, "\r")
         # print(square_a, square_b)
         factor1 = GCD_Stein(math.fabs(square_a - square_b), n)
         factor2 = 0
+        print(factor1)
         if factor1 != 1 and factor1 != n:
-            print("Factor base size:", base_size)
             return factor1, n/factor1
-    # return quadratic_sieve(n, base_size+1)
+    return None
+
+
+def exp_quadratic_sieve(n, base_size=5):
+    """
+    experimental
+    this is just for messing around with the sieve
+
+    :param n: semiprime to be factored
+    :param base_size: size of the factor base
+    :return: non-trivial factors of semiprime n
+    """
+
+    factor_base = generate_quadratic_residue_primes(base_size, n)
+    print("Bound:", base_size)
+    print(factor_base)
+
+    sqrt_n = math.sqrt(n)
+    if not sqrt_n.is_integer():
+        sqrt_n = int(sqrt_n+1)
+    # y_list = []
+    # for i in range(1000):
+    #     # POLYNOMIAL
+    #     # try to make it better and tailor it to the number being factored
+    #     value = int(math.pow(i + sqrt_n, 2) - n)
+    #     y_list.append(value)
+    # # print("y list:", y_list)
+    #
+    # y_list_copy = copy.deepcopy(y_list)
+    # z_list = []
+    # parity_matrix = []
+    # for i in range(len(y_list)):
+    #     # maybe also optimize this with Shanks-Tonelli
+    #     for prime in factor_base:
+    #         if y_list_copy[i] % prime == 0:
+    #             y_list_copy[i] /= prime
+    #     if y_list_copy[i] == 1:
+    #         index = i + sqrt_n
+    #         # value = int(math.pow(i + sqrt_n, 2) - n)
+    #         value = y_list[i]
+    #         z_list.append((index, value))
+    #         parity_matrix.append(prime_factors_to_parity(sympy.factorint(value), factor_base))
+
+    i = 0
+    z_list = []
+    parity_matrix = []
+    max_num = 1
+    value = 0
+    for prime in factor_base:
+        max_num *= prime
+    print("Max:", max_num)
+    # this sieve doesn't stop until it gets the parity matrix into a linear dependency
+    # there is also a maximum where the sieve knows it won't find any more values,
+    # which is the product of the factor base, so it just stops
+    while value <= max_num and len(z_list) <= len(factor_base):
+        y = int(math.pow(i + sqrt_n, 2) - n)
+        value = y
+        for prime in factor_base:
+            if y % prime == 0:
+                y /= prime
+        if y == 1:
+            index = i + sqrt_n
+            # value = int(math.pow(i + sqrt_n, 2) - n)
+            z_list.append((index, value))
+            parity_matrix.append(prime_factors_to_parity(sympy.factorint(value), factor_base))
+        i += 1
+
+        # loading
+        if i % 200000 == 0:
+            loading = "."
+            if i % 10000000 == 0:
+                print(z_list)
+                loading += "\r"
+            print(loading, sep=' ', end='', flush=True)
+
+
+    # print("y list:", y_list)
+    # print("y list:", y_list_copy)
+    print("z list:", z_list)
+    Matrix.print_matrix(parity_matrix)
+    if len(z_list) == 0:
+        return None
+
+    left_null_space = Matrix.left_null_space(parity_matrix, 2)
+    parity_matrix = Matrix.mod_matrix(left_null_space[0], 2)
+    new_identity_matrix = Matrix.mod_matrix(left_null_space[1], 2)
+    valid_combos = []
+
+    for r in range(len(parity_matrix)):
+        if sum(parity_matrix[r]) == 0:
+            valid_combos.append(new_identity_matrix[r])
+
+    print("valid combos:", valid_combos)
+    if len(valid_combos) == 0 or len(valid_combos[0]) > len(z_list):
+        return None
+
+    for combo in valid_combos:
+        # squares of indices
+        square_a = 1
+        # squares of polynomial results
+        square_b = 1
+        for i in range(len(combo)):
+            square_a *= z_list[i][0]
+            square_b *= z_list[i][1]
+        square_b = int(math.sqrt(square_b))
+        print(combo, square_a, square_b, "\r")
+        # print(square_a, square_b)
+        factor1 = GCD_Stein(math.fabs(square_a - square_b), n)
+        factor2 = 0
+        print(factor1)
+        if factor1 != 1 and factor1 != n:
+            return factor1, n/factor1
     return None
 
 
@@ -328,6 +405,53 @@ def all_possible_matrix_combinations(og_matrix, index=0, combo=[], answers=[]):
 
 
 # helper boys
+def Tonelli_Shanks(n, p):
+    """
+    calculates the integer r that fulfills n being a quadratic residue mod p in r^2 = n (mod p), if any
+    thanks Wikipedia
+    :param n: quadratic residue
+    :param p: prime modulus of the quadratic residue
+    :return: r and -r, both fulfilling r^2 = n (mod p), returns None if n is a non-residue
+    """
+    p1_factors = sympy.factorint(p-1)
+    S = p1_factors[2]
+    Q = 1
+    for key in p1_factors:
+        if key != 2:
+            Q *= key**p1_factors[key]
+
+    z = -1
+    i = 0
+    while z == -1 and i < p:
+        i += 1
+        if Legendre_symbol(i, p) == -1:
+            z = i
+
+    M = S
+    c = mod_pow(z, Q, p)
+    t = mod_pow(n, Q, p)
+    R = mod_pow(n, (Q+1)/2, p)
+
+    if t == 0:
+        return 0
+    elif t == 1:
+        return R
+    i = 1
+    b = 0
+    while t != 1:
+        i = 1
+        while mod_pow(t, 2**i, p) != 1:
+            i += 1
+        b = mod_pow(c, 2**(M-i-1), p)
+        M = i
+        c = mod_pow(b, 2, p)
+        t = t*c % p
+        R = R*b % p
+    if i >= 0:
+        return None
+    return R, -R
+
+
 def get_congruence_of_squares(a, b):
     """
     simultaneously checks if each list of prime factors is a perfect square and
@@ -438,6 +562,8 @@ def Legendre_symbol(a, p):
     :param p: prime that goes with it
     :return: Legendre symbol (1, 0, or -1)
     """
+    if a == 0:
+        return 0
     power = int((p-1)/2)
     legendre = mod_pow(a, power, p)
     if legendre == p-1:
@@ -549,6 +675,9 @@ def mod_pow(base, exp, mod):
 
     answer = 1
     base %= mod
+
+    base = int(base)
+    exp = int(exp)
 
     while exp > 0:
         if exp & 1:

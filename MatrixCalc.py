@@ -1,3 +1,4 @@
+import ModCalc as Mod
 
 
 def add_rows(ra, rb):
@@ -52,10 +53,11 @@ def generate_identity(size):
     return identity
 
 
-def Gauss_Jordan_elimination(matrix):
+def Gauss_Jordan_elimination(matrix, mod=0):
     """
     puts a matrix in reduced row echelon form
     beware of numerical instability, idk what to do about it
+    although hopefully it doesn't matter too much since we're only really using this mod 2
     :param matrix: matrix to be solved
     :return matrix: solved matrix
     """
@@ -76,7 +78,7 @@ def Gauss_Jordan_elimination(matrix):
             pivot = matrix[r_pivot][c]
             # divide the pivot row by the pivot to make it 1
             for c2 in range(columns):
-                matrix[r_pivot][c2] /= pivot
+                matrix[r_pivot][c2] = Mod.mod(matrix[r_pivot][c2]/pivot, mod)
             swap_rows(matrix, r, r_pivot)
             # set everything in the column to zero except for the pivot
             # also subtract the pivot row from each row that gets modified
@@ -85,7 +87,7 @@ def Gauss_Jordan_elimination(matrix):
                     quotient = matrix[r2][c]/matrix[r][c]
                     matrix[r2][c] = 0
                     for c2 in range(c+1, columns):
-                        matrix[r2][c2] -= matrix[r][c2]*quotient
+                        matrix[r2][c2] = Mod.mod(matrix[r2][c2]-matrix[r][c2]*quotient, mod)
             r += 1
         c += 1
     return matrix
@@ -130,7 +132,7 @@ def sideways_Gauss_Jordan_elimination(matrix):
     return matrix
 
 
-def left_null_space(matrix):
+def left_null_space(matrix, mod=0):
     """
     augments the matrix with an identity matrix and performs Gauss-Jordan elimination
     this records the steps of the elimination onto the identity
@@ -144,11 +146,7 @@ def left_null_space(matrix):
     for i in range(rows):
         matrix[i] += identity[i]
 
-    print_matrix(matrix)
-    Gauss_Jordan_elimination(matrix)
-    print()
-    print_matrix(matrix)
-    print()
+    Gauss_Jordan_elimination(matrix, mod)
 
     for i in range(rows):
         whole_row = list(matrix[i])

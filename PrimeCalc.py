@@ -43,7 +43,6 @@ def GCD_Stein(a, b):
     """
     Stein's Algorithm, a slightly different take on Euclid's algorithm
     gives the greatest common divisor of the params
-    this one looks better
     :param v: number to be assessed
     :param u: number to be assessed
     :return: GCD of v and u
