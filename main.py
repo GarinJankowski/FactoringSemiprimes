@@ -53,7 +53,7 @@ if __name__ == '__main__':
     # calc = ModCalc.ModCalc(8)
     # calc.create_table("**", (2, 21), (0, 100))
     # print(euclid_extended(17, 47500))
-    #run_primality_tests(6597072809)
+    # run_primality_tests(6597072809)
     run_primality_tests(remove_commas("1,872,160,488,359,313,005,195,657,104,852,822,711,178,010,796,939,601,138,105,193,545,347,015,515,588,641,251,945,858,024,657,444,530,188,818,971,438,716,066,174,295,004,419,071,702,079,031,242,851,266,630,488,578,181,241,742,724,921,449,063"))
     run_primality_tests(101)
     num = 118627064770095767481642687937131474625503554938783849161211
@@ -67,7 +67,7 @@ if __name__ == '__main__':
     print(Factor.basic_factoring(6784))
     print(Prime.generate_primes(min_limit=600, amount=7))
 
-    #print(FactorCalc.rational_sieve(187))
+    # print(FactorCalc.rational_sieve(187))
     t = timer(t)
     print(Prime.sieve_of_Eratosthenes(1000)[-10:-1])
     t = timer(t)
@@ -91,21 +91,19 @@ if __name__ == '__main__':
 
     matrix = [[1, 1, 1, 0], [0, 0, 0, 1], [1, 1, 1, 1]]
     Matrix.print_matrix(matrix)
-    #Matrix.Gauss_Jordan_elimination(matrix)
+    # Matrix.Gauss_Jordan_elimination(matrix)
     new_matrices = Matrix.left_null_space(matrix)
     Matrix.print_matrix(Matrix.mod_matrix(new_matrices[0], 2))
     Matrix.print_matrix(Matrix.mod_matrix(new_matrices[1], 2))
     t = timer(t)
-    #print(FactorCalc.rational_sieve(remove_commas("36,019")))
-    #print(FactorCalc.rational_sieve(11*29))
+    # print(FactorCalc.rational_sieve(remove_commas("36,019")))
+    # print(FactorCalc.rational_sieve(11*29))
     print(Factor.generate_quadratic_residue_primes(4, 1007))
     t = timer(t)
-    #print(Factor.exp_quadratic_sieve(15347, 5))
+    print(Factor.quadratic_sieve(15347, 4))
     t = timer(t)
-    #print(Factor.exp_quadratic_sieve(remove_commas("638,373,133"), 10))
-    matrix = [[0, 1, 1, 0, 1, 0, 1, 0, 1], [0, 1, 1, 0, 1, 1, 0, 0, 0], [0, 0, 0, 0, 1, 1, 0, 1, 0], [0, 0, 0, 1, 1, 0, 0, 1, 0], [0, 1, 0, 0, 1, 0, 0, 0, 1], [0, 1, 0, 0, 1, 0, 0, 0, 0], [0, 1, 0, 0, 1, 0, 0, 0, 0], [0, 1, 0, 0, 1, 0, 0, 0, 1], [0, 0, 0, 1, 1, 0, 0, 1, 0], [0, 0, 0, 0, 1, 1, 0, 1, 0], [0, 1, 1, 0, 1, 1, 0, 0, 0], [0, 1, 1, 0, 1, 0, 1, 0, 1]]
+    # print(Factor.exp_quadratic_sieve(remove_commas("638,373,133"), 10))
+    # matrix = [[0, 1, 1, 0, 1, 0, 1, 0, 1], [0, 1, 1, 0, 1, 1, 0, 0, 0], [0, 0, 0, 0, 1, 1, 0, 1, 0], [0, 0, 0, 1, 1, 0, 0, 1, 0], [0, 1, 0, 0, 1, 0, 0, 0, 1], [0, 1, 0, 0, 1, 0, 0, 0, 0], [0, 1, 0, 0, 1, 0, 0, 0, 0], [0, 1, 0, 0, 1, 0, 0, 0, 1], [0, 0, 0, 1, 1, 0, 0, 1, 0], [0, 0, 0, 0, 1, 1, 0, 1, 0], [0, 1, 1, 0, 1, 1, 0, 0, 0], [0, 1, 1, 0, 1, 0, 1, 0, 1]]
     # print(Factor.all_possible_matrix_combinations(matrix))
+    print(Factor.Tonelli_Shanks(15346, 2))
     t = timer(t)
-    Factor.Tonelli_Shanks(5, 41)
-    t = timer(t)
-    Factor.Tonelli_Shanks(71, 1009)

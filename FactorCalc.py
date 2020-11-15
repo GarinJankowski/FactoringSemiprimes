@@ -5,6 +5,7 @@ import sympy
 
 import PrimeCalc
 import MatrixCalc as Matrix
+import ModCalc as Mod
 
 """
 format for prime factors in a dictionary:
@@ -159,10 +160,10 @@ def quadratic_sieve(n, base_size=5):
     :return: non-trivial factors of semiprime n
     """
     # nice little loading indicator for ya
-    loading = "."
-    if (base_size-3) % 50 == 0:
-        loading += "\r"
-    print(loading, sep=' ', end='', flush=True)
+    # loading = "."
+    # if (base_size-3) % 50 == 0:
+    #     loading += "\r"
+    # print(loading, sep=' ', end='', flush=True)
 # STEP 1
     # choose a base_size instead of a bound this time
     # this is because we want a number of primes, not all primes below a maximum
@@ -188,6 +189,7 @@ def quadratic_sieve(n, base_size=5):
     sqrt_n = math.sqrt(n)
     if not sqrt_n.is_integer():
         sqrt_n = int(sqrt_n+1)
+    # the list to hold our values that we're gonna sieve on in STEP 4
     y_list = []
     for i in range(1000):
         # POLYNOMIAL
@@ -199,21 +201,76 @@ def quadratic_sieve(n, base_size=5):
 # STEP 4
     # sieve your y values for numbers where all their prime factors are in the factor base and also unique (power of 1)
     # this gives us a list of numbers where we can try all of their product combinations to find a perfect square
-    # maybe I could utilize Eratosthenes better here because I'm not really using it
+
+    # make a copy of the y_list so we can divide its values
     y_list_copy = copy.deepcopy(y_list)
+    # the z_list is the resulting pairs of (index+sqrt_n) and (y_list[index]) that will give us our congruence factors
     z_list = []
+    # this is a matrix of all y_list values that make it into z_list so we can see which values make a perfect square
+    # basically is a prime factor exponent matrix (mod 2) of the factors of the values of the z_list,
+    # I am explaining this poorly
     parity_matrix = []
-    for i in range(len(y_list)):
-        # maybe also optimize this with Shanks-Tonelli
-        for prime in factor_base:
-            if y_list_copy[i] % prime == 0:
-                y_list_copy[i] /= prime
-        if y_list_copy[i] == 1:
-            index = i + sqrt_n
-            # value = int(math.pow(i + sqrt_n, 2) - n)
-            value = y_list[i]
-            z_list.append((index, value))
-            parity_matrix.append(prime_factors_to_parity(sympy.factorint(value), factor_base))
+
+    # use the Tonelli-Shanks algorithm on each prime to locate the y_list[indices] which are a multiple of the prime
+    # Tonelli-Shanks basically gives us the values which make n a quadratic residue (mod prime),
+    # which will work as indices for the y_list (I don't know why but it does)
+    # this locates the first 1 or 2 indices, and every (prime) index after these will also be a multiple of the prime
+    factor_indices = [Tonelli_Shanks(n, p) for p in factor_base]
+    for i in range(len(factor_indices)):
+        for j in range(len(factor_indices[i])):
+            factor_indices[i][j] = (factor_indices[i][j] - sqrt_n) % factor_base[i]
+    # a copy of the factor base where we can eliminate values when needed so the main while loop eventually ends
+    factor_base_copy = list(factor_base)
+    print(factor_indices)
+    # this loop runs until every prime has gone through the y_list_copy, dividing everything they need to
+    while len(factor_base_copy) > 0:
+        p = 0
+        # this next loop goes through each prime, doing a few things:
+        #   divides the number at the factor_indices
+        #   check if that number = 1, if so add it to the z_list and parity_matrix
+        #   adds the current prime to each of its factor_indices, advancing its position in the y_list
+        #       this works since we know that the value at y_list[index+prime] is going to be divisible by the prime
+        while p < len(factor_base_copy):
+            # this while loop should run a maximum of 2 times,
+            # since there is a max of 2 possible results from Tonelli_Shanks()
+            i = 0
+            while i < len(factor_indices[p]):
+                factor_i = factor_indices[p][i]
+                y_list_copy[factor_i] /= factor_base_copy[p]
+                # if the divided value finally equals 1, then it is both smooth and unique over our factor base,
+                # so it is a viable value to be added to the z_list/parity_matrix
+                if y_list_copy[factor_i] == 1:
+                    # the z_list receives a tuple containing the index+sqrt_n and the original y_list value
+                    # this is why we made a y_list_copy to modify, because we still want the original, non-divided value
+                    index = factor_i + sqrt_n
+                    value = y_list[factor_i]
+                    tup = index, value
+                    # not sure if we'll ever run into duplicates, always nice to make sure
+                    if tup not in z_list:
+                        z_list.append((index, value))
+                        # the matrix receives a new row,
+                        # equivalent to the parity of the exponents of the number's prime factors from the factor base
+                        # basically, each value in the row corresponds to the prime in the factor base,
+                        # where it is 1 if the prime is a factor and 0 if it is not
+                        parity_matrix.append(prime_factors_to_parity(sympy.factorint(value), factor_base))
+                    else:
+                        print("THIS CONDITIONAL IS USEFUL")
+                # advance this y_list index to the next one
+                factor_indices[p][i] += factor_base_copy[p]
+                # if the factor index has gone through all the its y_list values, remove it
+                if factor_indices[p][i] >= len(y_list):
+                    factor_indices[p].pop(i)
+                else:
+                    i += 1
+                # if there are no more indices for this prime, it is complete
+                # remove the prime from the factor_base_copy and remove its indices from factor_indices
+                # break to ensure that the prime doesn't get checked again
+                if len(factor_indices[p]) == 0:
+                    factor_indices.pop(p)
+                    factor_base_copy.pop(p)
+                    p -= 1
+                    break
+            p += 1
 
     print("y list:", y_list)
     print("y list:", y_list_copy)
@@ -225,9 +282,6 @@ def quadratic_sieve(n, base_size=5):
 # STEP 5
     # gets all possible combinations of the matrix's rows that form a zero matrix
     # does this by getting the left null space of the matrix
-    # also for some reason all_possible_matrix_combinations keeps the answers from the last loop of the sieve,
-    # so I have to specify that the list of answers should start out empty
-
     left_null_space = Matrix.left_null_space(parity_matrix, 2)
     parity_matrix = Matrix.mod_matrix(left_null_space[0], 2)
     new_identity_matrix = Matrix.mod_matrix(left_null_space[1], 2)
@@ -411,8 +465,12 @@ def Tonelli_Shanks(n, p):
     thanks Wikipedia
     :param n: quadratic residue
     :param p: prime modulus of the quadratic residue
-    :return: r and -r, both fulfilling r^2 = n (mod p), returns None if n is a non-residue
+    :return: a list containing any r that fulfills r^2 = n (mod p), returns None if n is a non-residue
     """
+    # added a case for 2 so I don't have to do that in other places
+    if p == 2:
+        return [n % 2]
+
     p1_factors = sympy.factorint(p-1)
     S = p1_factors[2]
     Q = 1
@@ -433,23 +491,28 @@ def Tonelli_Shanks(n, p):
     R = mod_pow(n, (Q+1)/2, p)
 
     if t == 0:
-        return 0
+        return [0]
     elif t == 1:
-        return R
+        # also returns -R because if R works mod p, then so does -R mod p
+        # same for the return at the end of this method
+        return [R, p-R]
     i = 1
     b = 0
     while t != 1:
         i = 1
-        while mod_pow(t, 2**i, p) != 1:
+        while mod_pow(t, 2**i, p) != 1 and i < M:
             i += 1
+        # added this break to account for quadratic non-residues that will never reach an answer
+        if i >= M:
+            break
         b = mod_pow(c, 2**(M-i-1), p)
         M = i
         c = mod_pow(b, 2, p)
         t = t*c % p
         R = R*b % p
-    if i >= 0:
-        return None
-    return R, -R
+    if t == 1:
+        return [R, p-R]
+    return []
 
 
 def get_congruence_of_squares(a, b):
