@@ -137,7 +137,7 @@ def rational_sieve(n, bound=7):
     return prime_factors
 
 
-def quadratic_sieve(n, base_size=5):
+def quadratic_sieve(n):
     """
     MUCH faster than the rational sieve
     but just as inconsistent (I need to optimize it)
@@ -145,8 +145,8 @@ def quadratic_sieve(n, base_size=5):
     This time, the sieve is a bit more particular.
     The factor base only consists of primes that make n a quadratic residue (mod prime) to remove unnecessary primes.
     Checks a bunch of integers starting at 0 by putting them into a polynomial and getting all the y(x) as a list.
-    Next it uses a sieve of Eratosthenes to get the numbers from that list that factor only into primes from the base.
-    Then it puts all those y(x) into a matrix, each row being the exponents of the prime factors of a y(x).
+    Next it uses a sieve of Eratosthenes to get the numbers from that list that factor uniquely into primes from the base.
+    Then it puts all those y(x) into a matrix, each row being the exponents of the prime factors of a y(x) in mod 2.
     Gauss-Jordan elimination is then performed on the matrix augmented with an identity to find its left null space.
     The resulting identity from the elimination tells us which combinations of rows produce a perfect square.
     We then get a congruence of squares from the relation of the square to a product of the x values of the square's factors.
@@ -164,12 +164,22 @@ def quadratic_sieve(n, base_size=5):
     # if (base_size-3) % 50 == 0:
     #     loading += "\r"
     # print(loading, sep=' ', end='', flush=True)
+    print(n, "\nBits:", n.bit_length())
 # STEP 1
     # choose a base_size instead of a bound this time
     # this is because we want a number of primes, not all primes below a maximum
     # this is due to the fact that we want quadratic residue primes,
     # so an amount is probably better than a maximum since idk residue distribution
-    # default base_size is in the parameters
+
+    # alright so APPARENTLY according to this paper https://www.cs.virginia.edu/crab/QFS_Simple.pdf,
+    # the optimum size of the factor base is (e**(ln(n)*ln(ln(n)))**(sqrt(2)/4) I guess
+    # and the optimum size of the sieving interval is that number cubed
+    # I finally figured out why the sieving is gonna take awhile
+    scary_calculation = (math.e**(math.sqrt(math.log(n)*math.log(math.log(n)))))**(math.sqrt(2)/4)
+    base_size = int(scary_calculation)
+    sieving_interval = int(scary_calculation**3)
+    print("B:", base_size, "\nM:", sieving_interval)
+
 
 # STEP 2
     # for this sieve, you can't just use any old primes for factor base
@@ -177,8 +187,7 @@ def quadratic_sieve(n, base_size=5):
     # aka, there must exist an integer x where x^2 = n (mod p)
     # this cuts out any unnecessary primes so we can search on a more relevant set
     factor_base = generate_quadratic_residue_primes(base_size, n)
-    # print("Bound:", base_size)
-    print(factor_base)
+    # print(factor_base)
 
 # STEP 3
     # go through a certain range of X values to put into a polynomial
@@ -190,12 +199,13 @@ def quadratic_sieve(n, base_size=5):
     if not sqrt_n.is_integer():
         sqrt_n = int(sqrt_n+1)
     # the list to hold our values that we're gonna sieve on in STEP 4
-    y_list = []
-    for i in range(1000):
+    y_list = {}
+    # goes every number under the interval, also covering the negative side, to get a range of -interval to interval
+    for i in range(sieving_interval):
         # POLYNOMIAL
         # try to make it better and tailor it to the number being factored
-        value = int(math.pow(i + sqrt_n, 2) - n)
-        y_list.append(value)
+        y_list[i] = int(math.pow(i + sqrt_n, 2) - n)
+        y_list[-i] = int(math.pow(-i + sqrt_n, 2) - n)
     # print("y list:", y_list)
 
 # STEP 4
@@ -214,14 +224,19 @@ def quadratic_sieve(n, base_size=5):
     # use the Tonelli-Shanks algorithm on each prime to locate the y_list[indices] which are a multiple of the prime
     # Tonelli-Shanks basically gives us the values which make n a quadratic residue (mod prime),
     # which will work as indices for the y_list (I don't know why but it does)
-    # this locates the first 1 or 2 indices, and every (prime) index after these will also be a multiple of the prime
-    factor_indices = [Tonelli_Shanks(n, p) for p in factor_base]
-    for i in range(len(factor_indices)):
-        for j in range(len(factor_indices[i])):
-            factor_indices[i][j] = (factor_indices[i][j] - sqrt_n) % factor_base[i]
+    # this locates the first 1 or 2 indices, and every index+(x*prime) after these will also be a multiple of the prime
+    #   that x variable in the comment just means every integer from 0 onwards
+    #   this works like a sieve of Eratosthenes, since we know the next index will also work
+    factor_indices_p = [Tonelli_Shanks(n, p) for p in factor_base]
+    factor_indices_n = copy.deepcopy(factor_indices_p)
+    for i in range(len(factor_indices_p)):
+        for j in range(len(factor_indices_p[i])):
+            factor_indices_p[i][j] = (factor_indices_p[i][j] - sqrt_n) % factor_base[i]
+            factor_indices_n[i][j] = factor_indices_p[i][j] - factor_base[i]
+    # print(factor_indices_p)
+    # print(factor_indices_n)
     # a copy of the factor base where we can eliminate values when needed so the main while loop eventually ends
     factor_base_copy = list(factor_base)
-    print(factor_indices)
     # this loop runs until every prime has gone through the y_list_copy, dividing everything they need to
     while len(factor_base_copy) > 0:
         p = 0
@@ -231,49 +246,57 @@ def quadratic_sieve(n, base_size=5):
         #   adds the current prime to each of its factor_indices, advancing its position in the y_list
         #       this works since we know that the value at y_list[index+prime] is going to be divisible by the prime
         while p < len(factor_base_copy):
-            # this while loop should run a maximum of 2 times,
-            # since there is a max of 2 possible results from Tonelli_Shanks()
-            i = 0
-            while i < len(factor_indices[p]):
-                factor_i = factor_indices[p][i]
-                y_list_copy[factor_i] /= factor_base_copy[p]
-                # if the divided value finally equals 1, then it is both smooth and unique over our factor base,
-                # so it is a viable value to be added to the z_list/parity_matrix
-                if y_list_copy[factor_i] == 1:
-                    # the z_list receives a tuple containing the index+sqrt_n and the original y_list value
-                    # this is why we made a y_list_copy to modify, because we still want the original, non-divided value
-                    index = factor_i + sqrt_n
-                    value = y_list[factor_i]
-                    tup = index, value
-                    # not sure if we'll ever run into duplicates, always nice to make sure
-                    if tup not in z_list:
-                        z_list.append((index, value))
-                        # the matrix receives a new row,
-                        # equivalent to the parity of the exponents of the number's prime factors from the factor base
-                        # basically, each value in the row corresponds to the prime in the factor base,
-                        # where it is 1 if the prime is a factor and 0 if it is not
-                        parity_matrix.append(prime_factors_to_parity(sympy.factorint(value), factor_base))
+            # does the next while loop for both the positive and negative direction of x,
+            # since the sieving interval covers the negative side too
+            current_indices = factor_indices_p
+            negative = 1
+            for j in range(2):
+                # this last while loop should run a maximum of 2 times,
+                # since there is a max of 2 possible results from Tonelli_Shanks()
+                i = 0
+                while i < len(current_indices[p]):
+                    factor_i = current_indices[p][i]
+                    y_list_copy[factor_i] /= factor_base_copy[p]
+                    # if the divided value finally equals 1, then it is both smooth and unique over our factor base,
+                    # so it is a viable value to be added to the z_list/parity_matrix
+                    if y_list_copy[factor_i] == 1:
+                        # the z_list receives a tuple containing the index+sqrt_n and the original y_list value
+                        # this is why we made a y_list_copy to modify, because we still want the original, non-divided value
+                        index = factor_i + sqrt_n
+                        value = y_list[factor_i]
+                        tup = index, value
+                        # not sure if we'll ever run into duplicates, always nice to make sure
+                        if tup not in z_list:
+                            z_list.append(tup)
+                            # the matrix receives a new row,
+                            # equivalent to the parity of the exponents of the number's prime factors from the factor base
+                            # basically, each value in the row corresponds to the prime in the factor base,
+                            # where it is 1 if the prime is a factor and 0 if it is not
+                            # NOTE: its likely faster to record the prime factors during the loop instead of using sympy
+                            #   We can fix this later
+                            parity_matrix.append(prime_factors_to_parity(sympy.factorint(value), factor_base))
+                        else:
+                            print("THIS CONDITIONAL IS USEFUL")
+                    # advance this y_list index to the next one
+                    current_indices[p][i] += factor_base_copy[p]*negative
+                    # if the factor index has gone through all the its y_list values, remove it
+                    if abs(current_indices[p][i]) >= sieving_interval:
+                        current_indices[p].pop(i)
                     else:
-                        print("THIS CONDITIONAL IS USEFUL")
-                # advance this y_list index to the next one
-                factor_indices[p][i] += factor_base_copy[p]
-                # if the factor index has gone through all the its y_list values, remove it
-                if factor_indices[p][i] >= len(y_list):
-                    factor_indices[p].pop(i)
-                else:
-                    i += 1
-                # if there are no more indices for this prime, it is complete
-                # remove the prime from the factor_base_copy and remove its indices from factor_indices
-                # break to ensure that the prime doesn't get checked again
-                if len(factor_indices[p]) == 0:
-                    factor_indices.pop(p)
-                    factor_base_copy.pop(p)
-                    p -= 1
-                    break
+                        i += 1
+                current_indices = factor_indices_n
+                negative = -1
+            # if there are no more indices for this prime, it is complete
+            # remove the prime from the factor_base_copy and remove its indices from factor_indices
+            if len(factor_indices_p[p]) == 0 and len(factor_indices_n[p]) == 0:
+                factor_indices_p.pop(p)
+                factor_indices_n.pop(p)
+                factor_base_copy.pop(p)
+                p -= 1
             p += 1
 
-    print("y list:", y_list)
-    print("y list:", y_list_copy)
+    # print("y list:", y_list)
+    # print("y list:", y_list_copy)
     print("z list:", z_list)
     Matrix.print_matrix(parity_matrix)
     if len(z_list) == 0:
@@ -282,10 +305,14 @@ def quadratic_sieve(n, base_size=5):
 # STEP 5
     # gets all possible combinations of the matrix's rows that form a zero matrix
     # does this by getting the left null space of the matrix
+    # FOR SOME REASON it doesn't always find all the combinations?
+    #   if you do n = 15247 and manually set M = 10,000, it misses a valid combo, idk why
     left_null_space = Matrix.left_null_space(parity_matrix, 2)
     parity_matrix = Matrix.mod_matrix(left_null_space[0], 2)
     new_identity_matrix = Matrix.mod_matrix(left_null_space[1], 2)
     valid_combos = []
+    # Matrix.print_matrix(parity_matrix)
+    # Matrix.print_matrix(new_identity_matrix)
 
     for r in range(len(parity_matrix)):
         if sum(parity_matrix[r]) == 0:

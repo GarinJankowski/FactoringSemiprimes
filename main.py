@@ -100,10 +100,10 @@ if __name__ == '__main__':
     # print(FactorCalc.rational_sieve(11*29))
     print(Factor.generate_quadratic_residue_primes(4, 1007))
     t = timer(t)
-    print(Factor.quadratic_sieve(15347, 4))
+    print(Factor.quadratic_sieve(15347))
     t = timer(t)
     # print(Factor.exp_quadratic_sieve(remove_commas("638,373,133"), 10))
     # matrix = [[0, 1, 1, 0, 1, 0, 1, 0, 1], [0, 1, 1, 0, 1, 1, 0, 0, 0], [0, 0, 0, 0, 1, 1, 0, 1, 0], [0, 0, 0, 1, 1, 0, 0, 1, 0], [0, 1, 0, 0, 1, 0, 0, 0, 1], [0, 1, 0, 0, 1, 0, 0, 0, 0], [0, 1, 0, 0, 1, 0, 0, 0, 0], [0, 1, 0, 0, 1, 0, 0, 0, 1], [0, 0, 0, 1, 1, 0, 0, 1, 0], [0, 0, 0, 0, 1, 1, 0, 1, 0], [0, 1, 1, 0, 1, 1, 0, 0, 0], [0, 1, 1, 0, 1, 0, 1, 0, 1]]
     # print(Factor.all_possible_matrix_combinations(matrix))
-    print(Factor.Tonelli_Shanks(15346, 2))
+    print(Factor.quadratic_sieve(1009))
     t = timer(t)
