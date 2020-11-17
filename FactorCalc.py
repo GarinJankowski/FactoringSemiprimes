@@ -152,7 +152,8 @@ def quadratic_sieve(n):
     We then get a congruence of squares from the relation of the square to a product of the x values of the square's factors.
     Finally, we can pop those roots into Euclid's algorithm and hopefully get some non-trivial factors.
 
-    Beware: This thing is pretty unoptimized, and by that I mean it doesn't work most of the time.
+    Beware: This thing is pretty unoptimized, and by that I mean it doesn't work on large numbers most of the time.
+    Pretty consistent with ~30 bit semiprimes.
     We'll see if we can get some better polynomials going.
 
     :param n: semiprime to be factored
@@ -198,6 +199,9 @@ def quadratic_sieve(n):
     sqrt_n = math.sqrt(n)
     if not sqrt_n.is_integer():
         sqrt_n = int(sqrt_n+1)
+    # thing for prime powers
+    else:
+        return sqrt_n, sqrt_n
     # the list to hold our values that we're gonna sieve on in STEP 4
     y_list = {}
     # goes every number under the interval, also covering the negative side, to get a range of -interval to interval
@@ -237,6 +241,7 @@ def quadratic_sieve(n):
     # print(factor_indices_n)
     # a copy of the factor base where we can eliminate values when needed so the main while loop eventually ends
     factor_base_copy = list(factor_base)
+
     # this loop runs until every prime has gone through the y_list_copy, dividing everything they need to
     while len(factor_base_copy) > 0:
         p = 0
@@ -256,7 +261,10 @@ def quadratic_sieve(n):
                 i = 0
                 while i < len(current_indices[p]):
                     factor_i = current_indices[p][i]
-                    y_list_copy[factor_i] /= factor_base_copy[p]
+                    # I have no clue if this while should be here
+                    # should the factors have to be unique or should they not?
+                    while y_list_copy[factor_i] % factor_base_copy[p] == 0:
+                        y_list_copy[factor_i] /= factor_base_copy[p]
                     # if the divided value finally equals 1, then it is both smooth and unique over our factor base,
                     # so it is a viable value to be added to the z_list/parity_matrix
                     if y_list_copy[factor_i] == 1:
@@ -292,13 +300,13 @@ def quadratic_sieve(n):
                 factor_indices_p.pop(p)
                 factor_indices_n.pop(p)
                 factor_base_copy.pop(p)
-                p -= 1
-            p += 1
+            else:
+                p += 1
 
     # print("y list:", y_list)
     # print("y list:", y_list_copy)
-    print("z list:", z_list)
-    Matrix.print_matrix(parity_matrix)
+    # print("z list:", z_list)
+    # Matrix.print_matrix(parity_matrix)
     if len(z_list) == 0:
         return None
 
@@ -318,7 +326,8 @@ def quadratic_sieve(n):
         if sum(parity_matrix[r]) == 0:
             valid_combos.append(new_identity_matrix[r])
 
-    print("valid combos:", valid_combos)
+    print("valid combos:", len(valid_combos))
+    # print(valid_combos)
     if len(valid_combos) == 0 or len(valid_combos[0]) > len(z_list):
         return None
 
@@ -331,14 +340,15 @@ def quadratic_sieve(n):
         # squares of polynomial results
         square_b = 1
         for i in range(len(combo)):
-            square_a *= z_list[i][0]
-            square_b *= z_list[i][1]
+            if combo[i] == 1:
+                # print(z_list[i])
+                square_a *= z_list[i][0]
+                square_b *= z_list[i][1]
         square_b = int(math.sqrt(square_b))
-        print(combo, square_a, square_b, "\r")
+        # print(combo, square_a, square_b, "\r")
         # print(square_a, square_b)
-        factor1 = GCD_Stein(math.fabs(square_a - square_b), n)
-        factor2 = 0
-        print(factor1)
+        factor1 = GCD_Stein(abs(square_a - square_b), n)
+        # print(factor1)
         if factor1 != 1 and factor1 != n:
             return factor1, n/factor1
     return None
