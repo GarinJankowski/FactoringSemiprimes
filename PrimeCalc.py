@@ -43,8 +43,9 @@ def GCD_Stein(a, b):
     """
     Stein's Algorithm, a slightly different take on Euclid's algorithm
     gives the greatest common divisor of the params
-    :param v: number to be assessed
-    :param u: number to be assessed
+    Works with large numbers thanks to floor division
+    :param v: positive integer
+    :param u: positive integer
     :return: GCD of v and u
     """
 
@@ -60,19 +61,19 @@ def GCD_Stein(a, b):
     # if a and b are both even, their gcd is the gcd of a/2 and b/2 then multiplied by 2
     if a % 2 == 0:
         if b % 2 == 0:
-            return 2 * GCD_Stein(a / 2, b / 2)
+            return 2 * GCD_Stein(a // 2, b // 2)
         # if only one is even, let's say 'a', then their gcd is the same as the gcd of a/2 and b
         else:
-            return GCD_Stein(a / 2, b)
+            return GCD_Stein(a // 2, b)
     elif b % 2 == 0:
-        return GCD_Stein(a, b / 2)
+        return GCD_Stein(a, b // 2)
     # if neither are even, there is one more thing you can check:
-    # their gcd should be the same as the gcd of their difference and the smallest value
+    # their gcd should be the same as the gcd of half their difference and the smallest value
     else:
         if a > b:
-            return GCD_Stein(a - b, b)
+            return GCD_Stein((a - b)//2, b)
         else:
-            return GCD_Stein(b - a, a)
+            return GCD_Stein((b - a)//2, a)
 
 
 def mod_pow(base, exp, mod):

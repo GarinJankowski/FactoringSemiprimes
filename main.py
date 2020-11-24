@@ -105,5 +105,9 @@ if __name__ == '__main__':
     # print(Factor.exp_quadratic_sieve(remove_commas("638,373,133"), 10))
     # matrix = [[0, 1, 1, 0, 1, 0, 1, 0, 1], [0, 1, 1, 0, 1, 1, 0, 0, 0], [0, 0, 0, 0, 1, 1, 0, 1, 0], [0, 0, 0, 1, 1, 0, 0, 1, 0], [0, 1, 0, 0, 1, 0, 0, 0, 1], [0, 1, 0, 0, 1, 0, 0, 0, 0], [0, 1, 0, 0, 1, 0, 0, 0, 0], [0, 1, 0, 0, 1, 0, 0, 0, 1], [0, 0, 0, 1, 1, 0, 0, 1, 0], [0, 0, 0, 0, 1, 1, 0, 1, 0], [0, 1, 1, 0, 1, 1, 0, 0, 0], [0, 1, 1, 0, 1, 0, 1, 0, 1]]
     # print(Factor.all_possible_matrix_combinations(matrix))
-    print(Factor.quadratic_sieve(remove_commas("175,521,629")))
+    print(Factor.quadratic_sieve(87463))
+    t = timer(t)
+    print(Factor.quadratic_sieve(remove_commas("303,760,571")))
+    t = timer(t)
+    print(Factor.quadratic_sieve(remove_commas("808,141,639,349,187,163")))
     t = timer(t)
