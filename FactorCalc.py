@@ -234,6 +234,12 @@ def quadratic_sieve(n):
         # print("y list:", y_list)
         # make a copy of the y_list so we can divide its values
         y_list_copy = copy.deepcopy(y_list)
+        # dictionary to hold all of the prime factors for each y value
+        # these factors are to be used later if the y is smooth over the factor base
+        # they will be used as vectors for the parity matrix
+        prime_factor_dict = {}
+        for y in y_list:
+            prime_factor_dict[y_list[y]] = {}
 
     # STEP 4
         # sieve your y values for numbers where all their prime factors are in the factor base and also unique (power of 1)
@@ -267,11 +273,13 @@ def quadratic_sieve(n):
                             i += 1
                             continue
                         factor_i = current_indices[f_index][i]
-                        # I have no clue if this while should be here
-                        # should the factors have to be unique or should they not?
-                        # It seems to work better with the while
-                        while y_list_copy[factor_i] % factor_base[f_index] == 0:
-                            y_list_copy[factor_i] //= factor_base[f_index]
+                        # check if the current prime factors into the current y value
+                        # if so, divide it and record the exponent in its prime factor dictionary
+                        if y_list_copy[factor_i] % factor_base[f_index] == 0:
+                            prime_factor_dict[y_list[factor_i]][factor_base[f_index]] = 0
+                            while y_list_copy[factor_i] % factor_base[f_index] == 0:
+                                y_list_copy[factor_i] //= factor_base[f_index]
+                                prime_factor_dict[y_list[factor_i]][factor_base[f_index]] += 1
                         # if the divided value finally equals 1, then it is both smooth over our factor base,
                         # so it is a viable value to be added to the z_list/parity_matrix
                         if y_list_copy[factor_i] == 1:
@@ -287,9 +295,9 @@ def quadratic_sieve(n):
                                 # equivalent to the parity of the exponents of the number's prime factors from the factor base
                                 # basically, each value in the row corresponds to the prime in the factor base,
                                 # where it is 1 if the prime is a factor and 0 if it is not
-                                # NOTE: its likely faster to record the prime factors during the loop instead of using sympy
-                                #   We can fix this later
-                                parity_matrix.append(prime_factors_to_parity(sympy.factorint(value), factor_base))
+                                prime_factors = prime_factor_dict[value]
+                                parity_matrix.append(prime_factors_to_parity(prime_factors, factor_base))
+                                # parity_matrix.append(prime_factors_to_parity(sympy.factorint(value), factor_base))
                         # advance this y_list index to the next one
                         current_indices[f_index][i] += factor_base[f_index]*negative
                         i += 1
@@ -312,7 +320,7 @@ def quadratic_sieve(n):
     # print("y list:", y_list)
     # print("y list:", y_list_copy)
     # print("z list:", z_list)
-    print("interval multiplier:", sieving_maximum/sieving_interval)
+    print("interval multiplier:", int(sieving_maximum/sieving_interval))
     print("smooth values:", len(z_list))
     # Matrix.print_matrix(parity_matrix)
 
@@ -340,8 +348,8 @@ def quadratic_sieve(n):
 # STEP 6
     # tries all the combos by multiplying them out and putting them into Euclid's algorithm
     # returns any non-trivial factors
-    # I LEARNED SOMETHING VERY IMPORTANT DURING THIS
-    # math.sqrt() sucks with arbitrarily large values, use math.isqrt() for this stuff
+    # I LEARNED SOMETHING VERY IMPORTANT DURING THIS:
+    #   math.sqrt() sucks with arbitrarily large values, use math.isqrt() for this stuff
     trivials = 0
     for combo in valid_combos:
         # squares of indices
@@ -369,9 +377,9 @@ def quadratic_sieve(n):
         if factor1 != 1 and factor1 != n:
             print("didn't pass:", trivials)
             return factor1, n//factor1
-        # if this happens, your code is messed up
-        # mathematically, this should not occur
         else:
+            # if this happens, your code is messed up
+            # mathematically, this should not occur
             print("\nUH OH")
             print(n)
             print(mod_pow(square_a, 2, n))
@@ -398,7 +406,7 @@ def MPQS(n):
     scary_calculation = (math.e**(math.sqrt(math.log(n)*math.log(math.log(n)))))**(math.sqrt(2)/4)
     base_size = int(scary_calculation)
     sieving_interval = int(scary_calculation**3)
-    # print("B:", base_size, "\nM:", sieving_interval)
+    print("B:", base_size, "\nM:", sieving_interval)
 
     factor_base = generate_quadratic_residue_primes(base_size, n)
     # print(factor_base)
@@ -425,10 +433,14 @@ def MPQS(n):
     while len(z_list) <= base_size+10:
         y_list = {}
         for i in range(sieving_minimum, sieving_maximum):
+            # POLYNOMIAL
             y_list[i] = int(math.pow(i + sqrt_n, 2) - n)
             y_list[-i] = int(math.pow(-i + sqrt_n, 2) - n)
         # print("y list:", y_list)
         y_list_copy = copy.deepcopy(y_list)
+        prime_factor_dict = {}
+        for y in y_list:
+            prime_factor_dict[y_list[y]] = {}
 
         # print(factor_indices_p)
         # print(factor_indices_n)
@@ -447,15 +459,19 @@ def MPQS(n):
                             i += 1
                             continue
                         factor_i = current_indices[f_index][i]
-                        while y_list_copy[factor_i] % factor_base[f_index] == 0:
-                            y_list_copy[factor_i] //= factor_base[f_index]
+                        if y_list_copy[factor_i] % factor_base[f_index] == 0:
+                            prime_factor_dict[y_list[factor_i]][factor_base[f_index]] = 0
+                            while y_list_copy[factor_i] % factor_base[f_index] == 0:
+                                y_list_copy[factor_i] //= factor_base[f_index]
+                                prime_factor_dict[y_list[factor_i]][factor_base[f_index]] += 1
                         if y_list_copy[factor_i] == 1:
                             index = factor_i + sqrt_n
                             value = y_list[factor_i]
                             tup = index, value
                             if tup not in z_list:
                                 z_list.append(tup)
-                                parity_matrix.append(prime_factors_to_parity(sympy.factorint(value), factor_base))
+                                prime_factors = prime_factor_dict[value]
+                                parity_matrix.append(prime_factors_to_parity(prime_factors, factor_base))
                         current_indices[f_index][i] += factor_base[f_index]*negative
                         i += 1
                     current_indices = factor_indices_n
@@ -474,7 +490,7 @@ def MPQS(n):
     # print("y list:", y_list)
     # print("y list:", y_list_copy)
     # print("z list:", z_list)
-    print("interval multiplier:", sieving_maximum/sieving_interval)
+    print("interval multiplier:", int(sieving_maximum/sieving_interval))
     print("smooth values:", len(z_list))
     # Matrix.print_matrix(parity_matrix)
 
