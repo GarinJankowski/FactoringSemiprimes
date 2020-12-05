@@ -222,7 +222,8 @@ def quadratic_sieve(n):
     # of those resulting factors, half of them should be proper factors
     # every smooth number added increases that chance
     # having 10 extra smooth numbers gives a 99.9% chance of finding a proper factor
-    while len(z_list) <= base_size+10:
+    max_relations = base_size+10
+    while len(z_list) <= max_relations:
         # the list to hold our values that we're gonna sieve on in STEP 4
         y_list = {}
         # goes every number under the interval, also covering the negative side, to get a range of -interval to interval
@@ -242,7 +243,7 @@ def quadratic_sieve(n):
             prime_factor_dict[y_list[y]] = {}
 
     # STEP 4
-        # sieve your y values for numbers where all their prime factors are in the factor base and also unique (power of 1)
+        # sieve your y values for numbers where all their prime factors are in the factor base and record the factors
         # this gives us a list of numbers where we can try all of their product combinations to find a perfect square
 
         # print(factor_indices_p)
@@ -251,14 +252,14 @@ def quadratic_sieve(n):
         factor_base_indices = [i for i in range(len(factor_base))]
 
         # this loop runs until every prime has gone through the y_list_copy, dividing everything they need to
-        while len(factor_base_indices) > 0:
+        while len(factor_base_indices) > 0 and len(z_list) <= max_relations:
             p = 0
             # this next loop goes through each prime, doing a few things:
             #   divides the number at the factor_indices
             #   check if that number = 1, if so add it to the z_list and parity_matrix
             #   adds the current prime to each of its factor_indices, advancing its position in the y_list
             #       this works since we know that the value at y_list[index+prime] is going to be divisible by the prime
-            while p < len(factor_base_indices):
+            while p < len(factor_base_indices) and len(z_list) <= max_relations:
                 # does the next while loop for both the positive and negative direction of x,
                 # since the sieving interval covers the negative side too
                 current_indices = factor_indices_p
@@ -319,6 +320,7 @@ def quadratic_sieve(n):
 
     # print("y list:", y_list)
     # print("y list:", y_list_copy)
+
     # print("z list:", z_list)
     print("interval multiplier:", int(sieving_maximum/sieving_interval))
     print("smooth values:", len(z_list))
@@ -397,7 +399,11 @@ def quadratic_sieve(n):
     return None
 
 
-def MPQS(n):
+def generate_polynomial(n, i):
+    pass
+
+
+def MPQS(n, threads=1):
     """
     multiple polynomial quadratic sieve
     """
@@ -430,7 +436,10 @@ def MPQS(n):
     sieving_minimum = 0
     sieving_maximum = sieving_interval
 
-    while len(z_list) <= base_size+10:
+    max_relations = base_size+10
+    partial_relations = {}
+    prime_factor_dict = {}
+    while len(z_list) <= max_relations:
         y_list = {}
         for i in range(sieving_minimum, sieving_maximum):
             # POLYNOMIAL
@@ -438,7 +447,6 @@ def MPQS(n):
             y_list[-i] = int(math.pow(-i + sqrt_n, 2) - n)
         # print("y list:", y_list)
         y_list_copy = copy.deepcopy(y_list)
-        prime_factor_dict = {}
         for y in y_list:
             prime_factor_dict[y_list[y]] = {}
 
@@ -446,9 +454,9 @@ def MPQS(n):
         # print(factor_indices_n)
         factor_base_indices = [i for i in range(len(factor_base))]
 
-        while len(factor_base_indices) > 0:
+        while len(factor_base_indices) > 0 and len(z_list) <= max_relations:
             p = 0
-            while p < len(factor_base_indices):
+            while p < len(factor_base_indices) and len(z_list) <= max_relations:
                 current_indices = factor_indices_p
                 negative = 1
                 f_index = factor_base_indices[p]
@@ -468,10 +476,31 @@ def MPQS(n):
                             index = factor_i + sqrt_n
                             value = y_list[factor_i]
                             tup = index, value
+                           # print("FR:", mod_pow(index, 2, n), value%n)
                             if tup not in z_list:
                                 z_list.append(tup)
                                 prime_factors = prime_factor_dict[value]
                                 parity_matrix.append(prime_factors_to_parity(prime_factors, factor_base))
+                        # large prime
+                        elif factor_base[-1] < y_list_copy[factor_i] <= factor_base[-1]**2 and sympy.isprime(y_list_copy[factor_i]):
+                            large_prime = y_list_copy[factor_i]
+                            if large_prime in partial_relations:
+                                partial_x, partial_y = partial_relations[large_prime]
+                                partial_relations.pop(large_prime)
+                                new_x = partial_x * (factor_i + sqrt_n)
+                                new_y = partial_y * y_list[factor_i]
+                                #print(partial_y, y_list[factor_i])
+                                #print(partial_y in prime_factor_dict, y_list[factor_i] in prime_factor_dict)
+                                new_factors = multiply_prime_factors(prime_factor_dict[partial_y], prime_factor_dict[y_list[factor_i]])
+                                tup = new_x, new_y
+
+                                if tup not in z_list:
+                                    z_list.append(tup)
+                                    parity_matrix.append(prime_factors_to_parity(new_factors, factor_base))
+                                #print(mod_pow(new_x, 2, n), new_y%n)
+                            else:
+                                #print("og:", y_list[factor_i], y_list[factor_i] in prime_factor_dict)
+                                partial_relations[large_prime] = factor_i + sqrt_n, y_list[factor_i]
                         current_indices[f_index][i] += factor_base[f_index]*negative
                         i += 1
                     current_indices = factor_indices_n
@@ -520,8 +549,10 @@ def MPQS(n):
                 square_b *= z_list[i][1]
         square_a = abs(square_a)
         square_b = math.isqrt(square_b)
+        # extra
         if mod_pow(square_a, 2, n) != mod_pow(square_b, 2, n):
             print("HEY:", square_a, square_b)
+        # extra
         if (square_a % n) == (square_b % n) or (square_a % n) == (-square_b % n):
             trivials += 1
             continue
@@ -530,6 +561,7 @@ def MPQS(n):
             print("didn't pass:", trivials)
             return factor1, n//factor1
         else:
+            # extra
             print("\nUH OH")
             print(n)
             print(mod_pow(square_a, 2, n))
