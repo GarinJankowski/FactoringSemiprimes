@@ -105,9 +105,21 @@ if __name__ == '__main__':
     # print(Factor.exp_quadratic_sieve(remove_commas("638,373,133"), 10))
     # matrix = [[0, 1, 1, 0, 1, 0, 1, 0, 1], [0, 1, 1, 0, 1, 1, 0, 0, 0], [0, 0, 0, 0, 1, 1, 0, 1, 0], [0, 0, 0, 1, 1, 0, 0, 1, 0], [0, 1, 0, 0, 1, 0, 0, 0, 1], [0, 1, 0, 0, 1, 0, 0, 0, 0], [0, 1, 0, 0, 1, 0, 0, 0, 0], [0, 1, 0, 0, 1, 0, 0, 0, 1], [0, 0, 0, 1, 1, 0, 0, 1, 0], [0, 0, 0, 0, 1, 1, 0, 1, 0], [0, 1, 1, 0, 1, 1, 0, 0, 0], [0, 1, 1, 0, 1, 0, 1, 0, 1]]
     # print(Factor.all_possible_matrix_combinations(matrix))
-    print(Factor.quadratic_sieve(87463))
+    print(Factor.MPQS(87463))
     t = timer(t)
-    print(Factor.MPQS(remove_commas("384,264,227,692,841")))
+    #print(Factor.MPQS(remove_commas("316,805,816,423,168,663")))
     t = timer(t)
-    print(Factor.quadratic_sieve(remove_commas("384,264,227,692,841")))
+    #print(Factor.quadratic_sieve(remove_commas("316,805,816,423,168,663")))
     t = timer(t)
+    splist = [
+        "6,421,286,435,505,919",
+        "1,285,042,399,045,813",
+        "7,174,401,100,465,147",
+        "13,858,492,624,455,041"
+    ]
+    for prime in splist:
+        print(Factor.MPQS(remove_commas(prime)))
+        t = timer(t)
+        print(Factor.MPQS2(remove_commas(prime)))
+        t = timer(t)
+

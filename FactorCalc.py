@@ -375,7 +375,8 @@ def quadratic_sieve(n):
         if (square_a % n) == (square_b % n) or (square_a % n) == (-square_b % n):
             trivials += 1
             continue
-        factor1 = int(GCD_Stein(abs(square_a - square_b), n))
+        # factor1 = int(GCD_Stein(abs(square_a - square_b), n))
+        factor1 = PrimeCalc.GCD_Stein_while(abs(square_a - square_b), n)
         if factor1 != 1 and factor1 != n:
             print("didn't pass:", trivials)
             return factor1, n//factor1
@@ -429,7 +430,6 @@ def MPQS(n, threads=1):
         for j in range(len(factor_indices_p[i])):
             factor_indices_p[i][j] = (factor_indices_p[i][j] - sqrt_n) % factor_base[i]
             factor_indices_n[i][j] = factor_indices_p[i][j] - factor_base[i]
-
     z_list = []
     parity_matrix = []
 
@@ -438,7 +438,7 @@ def MPQS(n, threads=1):
 
     max_relations = base_size+10
     partial_relations = {}
-    prime_factor_dict = {}
+    partial_prime_factor_dict = {}
     while len(z_list) <= max_relations:
         y_list = {}
         for i in range(sieving_minimum, sieving_maximum):
@@ -447,6 +447,7 @@ def MPQS(n, threads=1):
             y_list[-i] = int(math.pow(-i + sqrt_n, 2) - n)
         # print("y list:", y_list)
         y_list_copy = copy.deepcopy(y_list)
+        prime_factor_dict = {}
         for y in y_list:
             prime_factor_dict[y_list[y]] = {}
 
@@ -476,31 +477,40 @@ def MPQS(n, threads=1):
                             index = factor_i + sqrt_n
                             value = y_list[factor_i]
                             tup = index, value
-                           # print("FR:", mod_pow(index, 2, n), value%n)
                             if tup not in z_list:
                                 z_list.append(tup)
                                 prime_factors = prime_factor_dict[value]
                                 parity_matrix.append(prime_factors_to_parity(prime_factors, factor_base))
                         # large prime
+                        #   I really don't wanna use a primality test for this check,
+                        #   it should instead check if it has been divided by all the factors in the factor base already
+                        #   the problem is that there's no great way to know that without storing that information
+                        #   or checking if it is a multiple of each prime below it + that prime's Tonelli-Shanks index
+                        #   both of those sound a lot less efficient than sympy's primality test
+                        #   another possibility is to do the actual smooth pass after the trial division
+                        #       except the reason I made it during the division was so that the sieve did not spend
+                        #       extra time trying to find more smooth values than it needs, since that takes time.
+                        #       I tested it out and it takes way more time to do that
+                        #       maybe that'll change once multiple polynomials are implemented, will have to try it out
                         elif factor_base[-1] < y_list_copy[factor_i] <= factor_base[-1]**2 and sympy.isprime(y_list_copy[factor_i]):
                             large_prime = y_list_copy[factor_i]
                             if large_prime in partial_relations:
                                 partial_x, partial_y = partial_relations[large_prime]
-                                partial_relations.pop(large_prime)
+
                                 new_x = partial_x * (factor_i + sqrt_n)
                                 new_y = partial_y * y_list[factor_i]
-                                #print(partial_y, y_list[factor_i])
-                                #print(partial_y in prime_factor_dict, y_list[factor_i] in prime_factor_dict)
-                                new_factors = multiply_prime_factors(prime_factor_dict[partial_y], prime_factor_dict[y_list[factor_i]])
+                                new_factors = multiply_prime_factors(partial_prime_factor_dict[partial_y], prime_factor_dict[y_list[factor_i]])
                                 tup = new_x, new_y
+
+                                partial_relations.pop(large_prime)
 
                                 if tup not in z_list:
                                     z_list.append(tup)
                                     parity_matrix.append(prime_factors_to_parity(new_factors, factor_base))
-                                #print(mod_pow(new_x, 2, n), new_y%n)
                             else:
-                                #print("og:", y_list[factor_i], y_list[factor_i] in prime_factor_dict)
-                                partial_relations[large_prime] = factor_i + sqrt_n, y_list[factor_i]
+                                partial_y = y_list[factor_i]
+                                partial_relations[large_prime] = factor_i + sqrt_n, partial_y
+                                partial_prime_factor_dict[partial_y] = prime_factor_dict[partial_y]
                         current_indices[f_index][i] += factor_base[f_index]*negative
                         i += 1
                     current_indices = factor_indices_n
@@ -556,7 +566,193 @@ def MPQS(n, threads=1):
         if (square_a % n) == (square_b % n) or (square_a % n) == (-square_b % n):
             trivials += 1
             continue
-        factor1 = int(GCD_Stein(abs(square_a - square_b), n))
+        #factor1 = int(GCD_Stein(abs(square_a - square_b), n))
+        factor1 = PrimeCalc.GCD_Stein_while(abs(square_a-square_b), n)
+        if factor1 != 1 and factor1 != n:
+            print("didn't pass:", trivials)
+            return factor1, n//factor1
+        else:
+            # extra
+            print("\nUH OH")
+            print(n)
+            print(mod_pow(square_a, 2, n))
+            print(mod_pow(square_b, 2, n))
+            print(square_a)
+            print(square_b)
+            print(square_a % n)
+            print(square_b % n)
+            print((-square_b) % n)
+            print(abs(square_a-square_b))
+            print(GCD_Stein(abs(square_a-square_b), n))
+            print(GCD_Stein(square_a+square_b, n))
+    print("didn't pass:", trivials)
+    print("Only trivial factors found.")
+    return None
+
+
+def MPQS2(n, threads=1):
+    """
+    multiple polynomial quadratic sieve
+    """
+    print(n, "\nBits:", n.bit_length())
+
+    scary_calculation = (math.e**(math.sqrt(math.log(n)*math.log(math.log(n)))))**(math.sqrt(2)/4)
+    base_size = int(scary_calculation)
+    sieving_interval = int(scary_calculation**3)
+    print("B:", base_size, "\nM:", sieving_interval)
+
+    factor_base = generate_quadratic_residue_primes(base_size, n)
+    # print(factor_base)
+
+    sqrt_n = math.sqrt(n)
+    if not sqrt_n.is_integer():
+        sqrt_n = math.isqrt(n)+1
+    else:
+        return sqrt_n, sqrt_n
+
+    factor_indices_p = [Tonelli_Shanks(n, p) for p in factor_base]
+    factor_indices_n = copy.deepcopy(factor_indices_p)
+    for i in range(len(factor_indices_p)):
+        for j in range(len(factor_indices_p[i])):
+            factor_indices_p[i][j] = (factor_indices_p[i][j] - sqrt_n) % factor_base[i]
+            factor_indices_n[i][j] = factor_indices_p[i][j] - factor_base[i]
+
+    z_list = []
+    parity_matrix = []
+
+    sieving_minimum = 0
+    sieving_maximum = sieving_interval
+
+    max_relations = base_size+10
+    partial_relations = {}
+    partial_prime_factor_dict = {}
+    partial_index = 0
+    while len(z_list) <= max_relations:
+        y_list = {}
+        for i in range(sieving_minimum, sieving_maximum):
+            # POLYNOMIAL
+            y_list[i] = int(math.pow(i + sqrt_n, 2) - n)
+            y_list[-i] = int(math.pow(-i + sqrt_n, 2) - n)
+        # print("y list:", y_list)
+        y_list_copy = copy.deepcopy(y_list)
+        prime_factor_dict = {}
+        for y in y_list:
+            prime_factor_dict[y_list[y]] = {}
+
+        # print(factor_indices_p)
+        # print(factor_indices_n)
+        factor_base_indices = [i for i in range(len(factor_base))]
+
+        while len(factor_base_indices) > 0 and len(z_list) <= max_relations:
+            p = 0
+            while p < len(factor_base_indices) and len(z_list) <= max_relations:
+                current_indices = factor_indices_p
+                negative = 1
+                f_index = factor_base_indices[p]
+                for j in range(2):
+                    i = 0
+                    while i < len(current_indices[f_index]):
+                        if abs(current_indices[f_index][i]) >= sieving_maximum:
+                            i += 1
+                            continue
+                        factor_i = current_indices[f_index][i]
+                        if y_list_copy[factor_i] % factor_base[f_index] == 0:
+                            prime_factor_dict[y_list[factor_i]][factor_base[f_index]] = 0
+                            while y_list_copy[factor_i] % factor_base[f_index] == 0:
+                                y_list_copy[factor_i] //= factor_base[f_index]
+                                prime_factor_dict[y_list[factor_i]][factor_base[f_index]] += 1
+                        if y_list_copy[factor_i] == 1:
+                            index = factor_i + sqrt_n
+                            value = y_list[factor_i]
+                            tup = index, value
+                            if tup not in z_list:
+                                z_list.append(tup)
+                                prime_factors = prime_factor_dict[value]
+                                parity_matrix.append(prime_factors_to_parity(prime_factors, factor_base))
+                        current_indices[f_index][i] += factor_base[f_index]*negative
+                        i += 1
+                    current_indices = factor_indices_n
+                    negative = -1
+                cross_out_prime = True
+                for f in range(len(factor_indices_p[f_index])):
+                    if factor_indices_p[f_index][f] < sieving_maximum or abs(factor_indices_n[f_index][f]) < sieving_maximum:
+                        cross_out_prime = False
+                if cross_out_prime:
+                    factor_base_indices.pop(p)
+                else:
+                    p += 1
+            # LPP: trailing check instead of after-division check
+            while partial_index < factor_indices_p[0][0]:
+                negative = 1
+                for i in range(2):
+                    factor_i = partial_index*negative
+                    if y_list_copy[factor_i] != 1 and factor_base[-1] < y_list_copy[factor_i] <= factor_base[-1] ** 2:
+                        large_prime = y_list_copy[factor_i]
+                        if large_prime in partial_relations:
+                            partial_x, partial_y = partial_relations[large_prime]
+
+                            new_x = partial_x * (factor_i + sqrt_n)
+                            new_y = partial_y * y_list[factor_i]
+                            new_factors = multiply_prime_factors(partial_prime_factor_dict[partial_y],
+                                                                 prime_factor_dict[y_list[factor_i]])
+                            tup = new_x, new_y
+
+                            partial_relations.pop(large_prime)
+
+                            if tup not in z_list:
+                                z_list.append(tup)
+                                parity_matrix.append(prime_factors_to_parity(new_factors, factor_base))
+                        else:
+                            partial_y = y_list[factor_i]
+                            partial_relations[large_prime] = factor_i + sqrt_n, partial_y
+                            partial_prime_factor_dict[partial_y] = prime_factor_dict[partial_y]
+                    negative = -1
+                partial_index += 1
+        sieving_minimum += sieving_interval
+        sieving_maximum += sieving_interval
+
+    # print("y list:", y_list)
+    # print("y list:", y_list_copy)
+    # print("z list:", z_list)
+    print("interval multiplier:", int(sieving_maximum/sieving_interval))
+    print("smooth values:", len(z_list))
+    # Matrix.print_matrix(parity_matrix)
+
+    left_null_space = Matrix.left_null_space(parity_matrix, 2)
+    parity_matrix = Matrix.mod_matrix(left_null_space[0], 2)
+    new_identity_matrix = Matrix.mod_matrix(left_null_space[1], 2)
+    valid_combos = []
+
+    for r in range(len(parity_matrix)):
+        if sum(parity_matrix[r]) == 0:
+            valid_combos.append(new_identity_matrix[r])
+
+    print("valid combos:", len(valid_combos))
+    # print(valid_combos)
+    # if len(valid_combos) == 0 or len(valid_combos[0]) > len(z_list):
+    #     return None
+    # print(z_list)
+
+    trivials = 0
+    for combo in valid_combos:
+        square_a = 1
+        square_b = 1
+        for i in range(len(combo)):
+            if combo[i] == 1:
+                # print(z_list[i])
+                square_a *= z_list[i][0]
+                square_b *= z_list[i][1]
+        square_a = abs(square_a)
+        square_b = math.isqrt(square_b)
+        # extra
+        if mod_pow(square_a, 2, n) != mod_pow(square_b, 2, n):
+            print("HEY:", square_a, square_b)
+        # extra
+        if (square_a % n) == (square_b % n) or (square_a % n) == (-square_b % n):
+            trivials += 1
+            continue
+        #factor1 = int(GCD_Stein(abs(square_a - square_b), n))
+        factor1 = PrimeCalc.GCD_Stein_while(abs(square_a-square_b), n)
         if factor1 != 1 and factor1 != n:
             print("didn't pass:", trivials)
             return factor1, n//factor1
