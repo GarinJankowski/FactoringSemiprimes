@@ -1,3 +1,4 @@
+
 import ModCalc as Mod
 import PrimeCalc as Prime
 import FactorCalc as Factor
@@ -117,9 +118,12 @@ if __name__ == '__main__':
         "7,174,401,100,465,147",
         "13,858,492,624,455,041"
     ]
-    for prime in splist:
-        print(Factor.MPQS(remove_commas(prime)))
+    for sprime in splist:
+        sp = remove_commas(sprime)
+        # print(Factor.MPQS(sp))
+        # t = timer(t)
+        print(Factor.MPQS2(sp))
         t = timer(t)
-        print(Factor.MPQS2(remove_commas(prime)))
-        t = timer(t)
+        # print(Factor.quadratic_sieve(sp))
+        # t = timer(t)
 

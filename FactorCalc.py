@@ -139,13 +139,19 @@ def rational_sieve(n, bound=7):
 
 def quadratic_sieve(n):
     """
-    MUCH faster than the rational sieve
-
-    This time, the sieve is a bit more particular.
-    The factor base only consists of primes that make n a quadratic residue (mod prime) to remove unnecessary primes.
-    Checks a bunch of integers starting at 0 by putting them into a polynomial and getting all the y(x) as a list.
-    Next it uses a sieve of Eratosthenes to get the numbers from that list that factor into primes from the base.
-    Then it puts all those y(x) into a matrix, each row being the exponents of the prime factors of a y(x) in mod 2.
+    This sieve is MUCH faster/better than the rational sieve and it works, too.
+    The size of the factor base and the sieving interval are generated using some optimal equation that someone found
+    by doing a lot of testing.
+    The factor base only consists of primes that make n a quadratic residue (mod prime) so that the Tonelli-Shanks
+    algorithm works for every prime in the base.
+    We also have our polynomial Q(x) = (x + sqrtn)^2 - n to generate our sieving base.
+    We use Tonelli-Shanks to initialize our polynomial, which means for each prime p in the factor base, we find the
+    x values from Q(x) which make n a quadratic residue mod p, giving us the first x values for which any given Q(x)
+    will be divisible by that p.
+    Then we generate the sieve base using our sieving interval as the x values and getting the Q(x) from each.
+    Next we use the initialization values and a sieve of Eratosthenes to get the numbers from that list that factor
+    completely into primes from the base.
+    Then it puts all those Q(x) into a matrix, each row being the exponents of the prime factors of a Q(x) in mod 2.
     Gauss-Jordan elimination is then performed on the matrix augmented with an identity to find its left null space.
     The resulting identity from the elimination tells us which combinations of rows produce a perfect square.
     We then get a congruence of squares from the relation of the square to a product of the x values of the square's factors.
@@ -167,6 +173,8 @@ def quadratic_sieve(n):
     # and the optimum size of the sieving interval is that number cubed
     # I finally figured out why the sieving is gonna take awhile
     scary_calculation = (math.e**(math.sqrt(math.log(n)*math.log(math.log(n)))))**(math.sqrt(2)/4)
+    # apparently -1 should be included in the factor base but I don't understand why
+    # the sieve has been working without it but maybe I'm missing something.
     base_size = int(scary_calculation)
     sieving_interval = int(scary_calculation**3)
     print("B:", base_size, "\nM:", sieving_interval)
@@ -206,7 +214,6 @@ def quadratic_sieve(n):
             factor_indices_p[i][j] = (factor_indices_p[i][j] - sqrt_n) % factor_base[i]
             factor_indices_n[i][j] = factor_indices_p[i][j] - factor_base[i]
 
-
     # the z_list is the resulting pairs of (index+sqrt_n) and (y_list[index]) that will give us our congruence factors
     z_list = []
     # this is a matrix of all y_list values that make it into z_list so we can see which values make a perfect square
@@ -230,8 +237,8 @@ def quadratic_sieve(n):
         for i in range(sieving_minimum, sieving_maximum):
             # POLYNOMIAL
             # try to make it better and tailor it to the number being factored
-            y_list[i] = int(math.pow(i + sqrt_n, 2) - n)
-            y_list[-i] = int(math.pow(-i + sqrt_n, 2) - n)
+            y_list[i] = (i + sqrt_n)**2 - n
+            y_list[-i] = (-i + sqrt_n)**2 - n
         # print("y list:", y_list)
         # make a copy of the y_list so we can divide its values
         y_list_copy = copy.deepcopy(y_list)
@@ -281,6 +288,9 @@ def quadratic_sieve(n):
                             while y_list_copy[factor_i] % factor_base[f_index] == 0:
                                 y_list_copy[factor_i] //= factor_base[f_index]
                                 prime_factor_dict[y_list[factor_i]][factor_base[f_index]] += 1
+                        # else:
+                        #     print(factor_base[f_index], factor_i, y_list_copy[factor_i])
+                        #     print("NO YOU'RE WRONG")
                         # if the divided value finally equals 1, then it is both smooth over our factor base,
                         # so it is a viable value to be added to the z_list/parity_matrix
                         if y_list_copy[factor_i] == 1:
@@ -400,10 +410,6 @@ def quadratic_sieve(n):
     return None
 
 
-def generate_polynomial(n, i):
-    pass
-
-
 def MPQS(n, threads=1):
     """
     multiple polynomial quadratic sieve
@@ -443,8 +449,8 @@ def MPQS(n, threads=1):
         y_list = {}
         for i in range(sieving_minimum, sieving_maximum):
             # POLYNOMIAL
-            y_list[i] = int(math.pow(i + sqrt_n, 2) - n)
-            y_list[-i] = int(math.pow(-i + sqrt_n, 2) - n)
+            y_list[i] = (i + sqrt_n)**2 - n
+            y_list[-i] = (-i + sqrt_n)**2 - n
         # print("y list:", y_list)
         y_list_copy = copy.deepcopy(y_list)
         prime_factor_dict = {}
@@ -590,6 +596,27 @@ def MPQS(n, threads=1):
     return None
 
 
+def generate_polynomials(n, i):
+    # set base size
+    # set M
+    # set tolerance
+    scary_calculation = (math.e ** (math.sqrt(math.log(n) * math.log(math.log(n))))) ** (math.sqrt(2) / 4)
+    base_size = int(scary_calculation) - 1
+    sieving_interval = int(scary_calculation ** 3)
+
+    # generate FB
+    # initialize t values for FB (Q(x) = 0 (mod p))
+
+    # generate a
+    # generate b
+    # generate c?
+
+    # solve t values for the polynomial
+
+
+    pass
+
+
 def MPQS2(n, threads=1):
     """
     multiple polynomial quadratic sieve
@@ -597,7 +624,10 @@ def MPQS2(n, threads=1):
     print(n, "\nBits:", n.bit_length())
 
     scary_calculation = (math.e**(math.sqrt(math.log(n)*math.log(math.log(n)))))**(math.sqrt(2)/4)
-    base_size = int(scary_calculation)
+    # in regards to -1 being a part of the factor base, it is left out and checked separately.
+    # it is put back in later when a z value is placed into the matrix.
+    # that's why I made the size one less than usual, although I'm not sure how much that matters
+    base_size = int(scary_calculation)-1
     sieving_interval = int(scary_calculation**3)
     print("B:", base_size, "\nM:", sieving_interval)
 
@@ -631,8 +661,8 @@ def MPQS2(n, threads=1):
         y_list = {}
         for i in range(sieving_minimum, sieving_maximum):
             # POLYNOMIAL
-            y_list[i] = int(math.pow(i + sqrt_n, 2) - n)
-            y_list[-i] = int(math.pow(-i + sqrt_n, 2) - n)
+            y_list[i] = (i + sqrt_n)**2 - n
+            y_list[-i] = (-i + sqrt_n)**2 - n
         # print("y list:", y_list)
         y_list_copy = copy.deepcopy(y_list)
         prime_factor_dict = {}
@@ -656,11 +686,17 @@ def MPQS2(n, threads=1):
                             i += 1
                             continue
                         factor_i = current_indices[f_index][i]
+                        if y_list_copy[factor_i] < 0:
+                            y_list_copy[factor_i] *= -1
+                            prime_factor_dict[y_list[factor_i]][-1] = 1
                         if y_list_copy[factor_i] % factor_base[f_index] == 0:
                             prime_factor_dict[y_list[factor_i]][factor_base[f_index]] = 0
                             while y_list_copy[factor_i] % factor_base[f_index] == 0:
                                 y_list_copy[factor_i] //= factor_base[f_index]
                                 prime_factor_dict[y_list[factor_i]][factor_base[f_index]] += 1
+                        else:
+                             print(factor_base[f_index], factor_i, y_list_copy[factor_i], sqrt_n, n)
+                             print("WRONG WRONG WRONG")
                         if y_list_copy[factor_i] == 1:
                             index = factor_i + sqrt_n
                             value = y_list[factor_i]
@@ -681,7 +717,11 @@ def MPQS2(n, threads=1):
                     factor_base_indices.pop(p)
                 else:
                     p += 1
-            # LPP: trailing check instead of after-division check
+            # LPP: trailing check instead of right-after-division check
+            #   this means the full-smoothness pass is still going to occur right after division,
+            #   but the large prime pass will occur after each value has been divided by 2, since that is a
+            #   guaranteed prime in the factor base and will always be the last index, so we know that the division
+            #   for any given number that has been passed by 2 since it is the last one
             while partial_index < factor_indices_p[0][0]:
                 negative = 1
                 for i in range(2):
@@ -1039,6 +1079,7 @@ def GCD_Stein(a, b):
 
 def prime_factors_to_parity(factor_dict, primes):
     vector = []
+    primes = [-1] + primes
     for prime in primes:
         if prime in factor_dict:
             vector.append(factor_dict[prime]%2)
@@ -1055,7 +1096,7 @@ def prime_factors_to_int(factor_dict):
     """
     num = 1
     for key in factor_dict:
-        num *= math.pow(key, factor_dict[key])
+        num *= key**factor_dict[key]
     return num
 
 
