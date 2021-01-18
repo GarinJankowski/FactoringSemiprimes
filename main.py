@@ -106,24 +106,34 @@ if __name__ == '__main__':
     # print(Factor.exp_quadratic_sieve(remove_commas("638,373,133"), 10))
     # matrix = [[0, 1, 1, 0, 1, 0, 1, 0, 1], [0, 1, 1, 0, 1, 1, 0, 0, 0], [0, 0, 0, 0, 1, 1, 0, 1, 0], [0, 0, 0, 1, 1, 0, 0, 1, 0], [0, 1, 0, 0, 1, 0, 0, 0, 1], [0, 1, 0, 0, 1, 0, 0, 0, 0], [0, 1, 0, 0, 1, 0, 0, 0, 0], [0, 1, 0, 0, 1, 0, 0, 0, 1], [0, 0, 0, 1, 1, 0, 0, 1, 0], [0, 0, 0, 0, 1, 1, 0, 1, 0], [0, 1, 1, 0, 1, 1, 0, 0, 0], [0, 1, 1, 0, 1, 0, 1, 0, 1]]
     # print(Factor.all_possible_matrix_combinations(matrix))
-    print(Factor.MPQS(87463))
+    print(Factor.PQS(87463))
     t = timer(t)
     #print(Factor.MPQS(remove_commas("316,805,816,423,168,663")))
     t = timer(t)
     #print(Factor.quadratic_sieve(remove_commas("316,805,816,423,168,663")))
     t = timer(t)
     splist = [
-        "6,421,286,435,505,919",
-        "1,285,042,399,045,813",
-        "7,174,401,100,465,147",
-        "13,858,492,624,455,041"
+        # 953*263,
+        # 211*863,
+        # 31*139,
+        # 887*557,
+        974387*493351,
+        756023*509227,
+        20809*809023
     ]
-    for sprime in splist:
-        sp = remove_commas(sprime)
-        # print(Factor.MPQS(sp))
-        # t = timer(t)
-        print(Factor.MPQS2(sp))
-        t = timer(t)
-        # print(Factor.quadratic_sieve(sp))
-        # t = timer(t)
-
+    # for sprime in splist:
+    #     #sp = remove_commas(sprime)
+    #     print(Factor.PQS(sprime))
+    #     # t = timer(t)
+    #     #print(len(Factor.generate_polynomial(sprime)))
+    #     t = timer(t)
+    #     #print(Factor.quadratic_sieve(sprime))
+    #     # t = timer(t)
+    #print(len(Factor.generate_polynomial(887*557)))
+    print(Factor.PQS(502613*360181))
+    print(Factor.PQS(887*557))
+    t = timer(t)
+    # print(Factor.step_by_step(502613*360181))
+    print(Factor.step_by_step(887*557))
+    # print(Factor.step_by_step(remove_commas("639,575,336,238,389,768,027,641")))
+    t = timer(t)

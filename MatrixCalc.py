@@ -95,7 +95,7 @@ def Gauss_Jordan_elimination(matrix, mod=0):
 
 def sideways_Gauss_Jordan_elimination(matrix):
     """
-    DOES NOT WORK CORRECTLY
+    DOES NOT WORK CORRECTLY I MESSED IT UP
     puts a matrix in reduced column echelon form
     :param matrix: matrix to be solved
     :return matrix: solved matrix

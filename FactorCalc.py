@@ -175,6 +175,7 @@ def quadratic_sieve(n):
     scary_calculation = (math.e**(math.sqrt(math.log(n)*math.log(math.log(n)))))**(math.sqrt(2)/4)
     # apparently -1 should be included in the factor base but I don't understand why
     # the sieve has been working without it but maybe I'm missing something.
+    # I'll account for -1 in the loop later
     base_size = int(scary_calculation)
     sieving_interval = int(scary_calculation**3)
     print("B:", base_size, "\nM:", sieving_interval)
@@ -184,16 +185,14 @@ def quadratic_sieve(n):
     # for this sieve, you can't just use any old primes for factor base
     # for each prime p, n must be a quadratic residue mod p
     # aka, there must exist an integer x where x^2 = n (mod p)
-    # this cuts out any unnecessary primes so we can search on a more relevant set
+    # using these primes allows us to know which results from our polynomial are divisible by which primes
     factor_base = generate_quadratic_residue_primes(base_size, n)
     # print(factor_base)
 
 # STEP 3
-    # go through a certain range of X values to put into a polynomial
+    # go through a certain range of x values to put into a polynomial
     # idk how to choose the right polynomial so I got a default one, some people even use multiple at once
     # list the resulting y values to get a base for your sieve
-    # range for the input is another variable that we can mess with, but I have no clue what to actually make it
-    # consult the Fermat-Kraitchik method, maybe some clues there
     sqrt_n = math.sqrt(n)
     if not sqrt_n.is_integer():
         sqrt_n = math.isqrt(n)+1
@@ -203,7 +202,7 @@ def quadratic_sieve(n):
 
     # use the Tonelli-Shanks algorithm on each prime to locate the y_list[indices] which are a multiple of the prime
     # Tonelli-Shanks basically gives us the values which make n a quadratic residue (mod prime),
-    # which will work as indices for the y_list (I don't know why but it does)
+    # which will work as indices for the y_list
     # this locates the first 1 or 2 indices, and every index+(x*prime) after these will also be a multiple of the prime
     #   that x variable in the comment just means every integer from 0 onwards
     #   this works like a sieve of Eratosthenes, since we know the next index will also work
@@ -230,6 +229,7 @@ def quadratic_sieve(n):
     # every smooth number added increases that chance
     # having 10 extra smooth numbers gives a 99.9% chance of finding a proper factor
     max_relations = base_size+10
+
     while len(z_list) <= max_relations:
         # the list to hold our values that we're gonna sieve on in STEP 4
         y_list = {}
@@ -410,9 +410,9 @@ def quadratic_sieve(n):
     return None
 
 
-def MPQS(n, threads=1):
+def PQS(n, threads=1):
     """
-    multiple polynomial quadratic sieve
+    quadratic sieve with large primes
     """
     print(n, "\nBits:", n.bit_length())
 
@@ -445,6 +445,7 @@ def MPQS(n, threads=1):
     max_relations = base_size+10
     partial_relations = {}
     partial_prime_factor_dict = {}
+
     while len(z_list) <= max_relations:
         y_list = {}
         for i in range(sieving_minimum, sieving_maximum):
@@ -596,28 +597,240 @@ def MPQS(n, threads=1):
     return None
 
 
-def generate_polynomials(n, i):
-    # set base size
-    # set M
-    # set tolerance
+def generate_polynomial(n, factor_base, sieving_interval, t_values, min_a, z_list, parity_matrix):
+    factor_base = factor_base.copy()
+    sqrt_n = math.isqrt(n)
+
+    # q = generate_quadratic_residue_primes(1, n, factor_base[-1]+1)[0]
+    #min_a = int(math.sqrt(2*n)/sieving_interval)+1
+    a = generate_quadratic_residue_primes(1, n, min_a)[0]
+    b = Tonelli_Shanks(n, a)[0]
+    c = (b ** 2 - n) // a
+
+    base_size = len(factor_base)
+
+    print("B:", base_size, "\nM:", sieving_interval)
+    print("POLY:", a, b, c, min_a)
+    print(b**2-a*c)
+
+    factor_indices_p = copy.deepcopy(t_values)
+    factor_indices_n = copy.deepcopy(t_values)
+    a_inverses = []
+    for i in range(len(factor_base)):
+        p = factor_base[i]
+        a_inverse = extended_euclidean_algorithm(a, p)
+        a_inverses.append(a_inverse)
+        for k in range(len(factor_indices_p[i])):
+            t = factor_indices_p[i][k]
+            factor_indices_p[i][k] = (b + t) * -a_inverse % p
+            factor_indices_n[i][k] = factor_indices_p[i][k] - p
+
+
+    # print(factor_base)
+    # print(t_values)
+    # print(factor_indices_p)
+
+    y_list = {}
+    for i in range(sieving_interval+1):
+        # POLYNOMIAL
+        y_list[i] = int((a * (i ** 2)) + (2 * b * i) + c)
+        y_list[-i] = int((a * ((-i) ** 2)) + (2 * b * (-i)) + c)
+    # print("y list:", y_list)
+    print("BIG", y_list[0], y_list[sieving_interval], y_list[-sieving_interval])
+    y_list_copy = copy.deepcopy(y_list)
+    prime_factor_dict = {}
+    for y in y_list:
+        prime_factor_dict[y_list[y]] = {}
+
+    # divisible_dict = {p: [] for p in factor_base}
+    # for i in range(300):
+    #     for f in range(len(factor_base)):
+    #         p = factor_base[f]
+    #         if y_list[i]%p == 0:
+    #             divisible_dict[p].append(i)
+    # print("DIVISBLE BY")
+    # for i in divisible_dict:
+    #     print(i, divisible_dict[i])
+
+    factor_base_indices = [i for i in range(len(factor_base))]
+    max_relations = base_size + 10
+    partial_relations = {}
+    partial_prime_factor_dict = {}
+    partial_index = 0
+
+    # print(sieving_interval)
+
+    # for each prime in FB
+    while len(factor_base_indices) > 0 and len(z_list) <= max_relations:
+        p = 0
+        # go through the current indices
+        while p < len(factor_base_indices) and len(z_list) <= max_relations:
+            current_indices = factor_indices_p
+            negative = 1
+            f_index = factor_base_indices[p]
+            # do negative and positive direction
+            for j in range(2):
+                i = 0
+                # do division up to the current index, increment current index by prime
+                while i < len(current_indices[f_index]):
+                    if abs(current_indices[f_index][i]) >= sieving_interval:
+                        i += 1
+                        continue
+                    factor_i = current_indices[f_index][i]
+                    if y_list_copy[factor_i] < 0:
+                        y_list_copy[factor_i] *= -1
+                        prime_factor_dict[y_list[factor_i]][-1] = 1
+                    if y_list_copy[factor_i] % factor_base[f_index] == 0:
+                        prime_factor_dict[y_list[factor_i]][factor_base[f_index]] = 0
+                        while y_list_copy[factor_i] % factor_base[f_index] == 0:
+                            y_list_copy[factor_i] //= factor_base[f_index]
+                            prime_factor_dict[y_list[factor_i]][factor_base[f_index]] += 1
+                    else:
+                        # should NEVER happen
+                        print(factor_base[f_index], factor_i, y_list[factor_i], y_list_copy[factor_i], n)
+                        print("WRONG WRONG WRONG")
+                    if y_list_copy[factor_i] == 1:
+                        index = (a*factor_i + b)**2
+                        value = y_list[factor_i]*a
+                        tup = index, value
+                        # print("Z:", tup)
+                        if tup not in z_list:
+                            z_list.append(tup)
+                            prime_factors = prime_factor_dict[y_list[factor_i]]
+                            # can't actually tell if we need this next line
+                            prime_factors[a] = 1
+                            parity_matrix.append(prime_factors_to_parity(prime_factors, factor_base))
+                    current_indices[f_index][i] += factor_base[f_index] * negative
+                    i += 1
+                current_indices = factor_indices_n
+                negative = -1
+            cross_out_prime = True
+            for f in range(len(factor_indices_p[f_index])):
+                if factor_indices_p[f_index][f] < sieving_interval or abs(
+                        factor_indices_n[f_index][f]) < sieving_interval:
+                    cross_out_prime = False
+            if cross_out_prime:
+                factor_base_indices.pop(p)
+            else:
+                p += 1
+        while partial_index < factor_indices_p[0][0] and partial_index < sieving_interval:
+            negative = 1
+            for i in range(2):
+                factor_i = partial_index * negative
+                if y_list_copy[factor_i] != 1 and factor_base[-1] < y_list_copy[factor_i] <= factor_base[-1] ** 2:
+                    large_prime = y_list_copy[factor_i]
+                    if large_prime in partial_relations:
+                        partial_x, partial_y = partial_relations[large_prime]
+
+                        new_x = partial_x * factor_i
+                        new_y = partial_y * y_list[factor_i]
+                        new_factors = multiply_prime_factors(partial_prime_factor_dict[partial_y],
+                                                             prime_factor_dict[y_list[factor_i]])
+                        tup = new_x, new_y
+
+                        partial_relations.pop(large_prime)
+
+                        # if tup not in z_list:
+                        #     z_list.append(tup)
+                        #     parity_matrix.append(prime_factors_to_parity(new_factors, factor_base))
+                    else:
+                        partial_y = y_list[factor_i]
+                        partial_relations[large_prime] = factor_i, partial_y
+                        partial_prime_factor_dict[partial_y] = prime_factor_dict[partial_y]
+                negative = -1
+            partial_index += 1
+    return a
+
+
+def step_by_step(n):
+    print("STEP BY STEP:")
+    print(n, "\nBits:", n.bit_length())
     scary_calculation = (math.e ** (math.sqrt(math.log(n) * math.log(math.log(n))))) ** (math.sqrt(2) / 4)
     base_size = int(scary_calculation) - 1
     sieving_interval = int(scary_calculation ** 3)
 
-    # generate FB
-    # initialize t values for FB (Q(x) = 0 (mod p))
+    factor_base = generate_quadratic_residue_primes(base_size, n)
+    t_values = [sorted(Tonelli_Shanks(n, p)) for p in factor_base]
 
-    # generate a
-    # generate b
-    # generate c?
+    sqrt_n = math.isqrt(n)
 
-    # solve t values for the polynomial
+    z_list = []
+    parity_matrix = []
+
+    a_modifier = 0
+    num_polynomials = 0
+    while len(z_list) < base_size + 10:
+        num_polynomials += 1
+        newa = generate_polynomial(n, factor_base, sieving_interval, t_values, factor_base[-1] + a_modifier + 1, z_list, parity_matrix)
+        a_modifier += newa
+    print("NUM POLYNOMIALS:", num_polynomials)
+
+    print("smooth values:", len(z_list))
+    print(z_list)
+    # Matrix.print_matrix(parity_matrix)
+
+    left_null_space = Matrix.left_null_space(parity_matrix, 2)
+    parity_matrix = Matrix.mod_matrix(left_null_space[0], 2)
+    new_identity_matrix = Matrix.mod_matrix(left_null_space[1], 2)
+    valid_combos = []
+
+    for r in range(len(parity_matrix)):
+        if sum(parity_matrix[r]) == 0:
+            valid_combos.append(new_identity_matrix[r])
+
+    print("valid combos:", len(valid_combos))
+    # print(valid_combos)
+    # if len(valid_combos) == 0 or len(valid_combos[0]) > len(z_list):
+    #     return None
+    # print(z_list)
+
+    trivials = 0
+    for combo in valid_combos:
+        square_a = 1
+        square_b = 1
+        square_a_test = 1
+        #3print("combo: ", combo)
+        for i in range(len(combo)):
+            if combo[i] == 1:
+                # print(z_list[i][0], z_list[i][1])
+                # print(z_list[i])
+                square_a *= z_list[i][0]
+                square_b *= z_list[i][1]
+        root_a = math.isqrt(square_a)
+        root_b = math.isqrt(square_b)
+        # extra
+        if square_a % n != square_b % n:
+            print("HEY:", square_a, square_b)
+        # extra
+        # if (square_a % n) == (square_b % n) or (square_a % n) == (-square_b % n):
+        #     trivials += 1
+        #     continue
+        # factor1 = int(GCD_Stein(abs(square_a - square_b), n))
+        factor1 = PrimeCalc.GCD_Stein_while(abs(root_a - root_b), n)
+        if factor1 != 1 and factor1 != n:
+            print("didn't pass:", trivials)
+            return factor1, n // factor1
+        # else:
+        #     # extra
+        #     print("\nUH OH")
+        #     print(n)
+        #     print(mod_pow(square_a, 2, n))
+        #     print(mod_pow(square_b, 2, n))
+        #     print(square_a)
+        #     print(square_b)
+        #     print(square_a % n)
+        #     print(square_b % n)
+        #     print((-square_b) % n)
+        #     print(abs(square_a - square_b))
+        #     print(GCD_Stein(abs(square_a - square_b), n))
+        #     print(GCD_Stein(square_a + square_b, n))
+    print("didn't pass:", trivials)
+    print("Only trivial factors found.")
+    return None
 
 
-    pass
 
-
-def MPQS2(n, threads=1):
+def MPQS(n, threads=1):
     """
     multiple polynomial quadratic sieve
     """
@@ -664,6 +877,7 @@ def MPQS2(n, threads=1):
             y_list[i] = (i + sqrt_n)**2 - n
             y_list[-i] = (-i + sqrt_n)**2 - n
         # print("y list:", y_list)
+        # generate_polynomial(n)
         y_list_copy = copy.deepcopy(y_list)
         prime_factor_dict = {}
         for y in y_list:
@@ -695,8 +909,9 @@ def MPQS2(n, threads=1):
                                 y_list_copy[factor_i] //= factor_base[f_index]
                                 prime_factor_dict[y_list[factor_i]][factor_base[f_index]] += 1
                         else:
-                             print(factor_base[f_index], factor_i, y_list_copy[factor_i], sqrt_n, n)
-                             print("WRONG WRONG WRONG")
+                            # should NEVER happen
+                            print(factor_base[f_index], factor_i, y_list_copy[factor_i], sqrt_n, n)
+                            print("WRONG WRONG WRONG")
                         if y_list_copy[factor_i] == 1:
                             index = factor_i + sqrt_n
                             value = y_list[factor_i]
@@ -845,17 +1060,46 @@ def all_possible_matrix_combinations(og_matrix, index=0, combo=[], answers=[]):
 
 
 # helper boys
-def Tonelli_Shanks(n, p):
+def extended_euclidean_algorithm(d, mod):
+    """
+    :return: modular multiplicative inverse of firstkey in mod(totient)
+    :author: William Retert
+    """
+    inverse = 0
+    tempinverse = 1
+    m = mod
+    nd = d
+    while nd != 0:
+        quotient = int(m/nd)
+
+        newtempinverse = inverse - (quotient*tempinverse)
+        (inverse, tempinverse) = (tempinverse, newtempinverse)
+
+        new_nd = m - (quotient*nd)
+        (m, nd) = (nd, new_nd)
+    if m > 1:
+        return "no inverse found"
+    if inverse < 0:
+        inverse += mod
+    return inverse
+
+
+def Tonelli_Shanks(n, p, Dickson=0):
     """
     calculates the integer r that fulfills n being a quadratic residue mod p in r^2 = n (mod p), if any
     thanks Wikipedia
+
     :param n: quadratic residue
     :param p: prime modulus of the quadratic residue
+    :param Dickson: prime power exponent, if any
     :return: a list containing any r that fulfills r^2 = n (mod p), returns None if n is a non-residue
     """
     # added a case for 2 so I don't have to do that in other places
     if p == 2:
-        return [n % 2]
+        squares = [n % 2]
+        if Dickson > 0:
+            squares = Tonelli_Dickson(squares, n, p, Dickson)
+        return squares
 
     p1_factors = sympy.factorint(p-1)
     S = p1_factors[2]
@@ -881,7 +1125,10 @@ def Tonelli_Shanks(n, p):
     elif t == 1:
         # also returns -R because if R works mod p, then so does -R mod p
         # same for the return at the end of this method
-        return [R, p-R]
+        squares = [R, p-R]
+        if Dickson > 0:
+            squares = Tonelli_Dickson(squares, n, p, Dickson)
+        return squares
     i = 1
     b = 0
     while t != 1:
@@ -897,8 +1144,32 @@ def Tonelli_Shanks(n, p):
         t = t*c % p
         R = R*b % p
     if t == 1:
-        return [R, p-R]
+        squares = [R, p-R]
+        if Dickson > 0:
+            squares = Tonelli_Dickson(squares, n, p, Dickson)
+        return squares
     return []
+
+
+def Tonelli_Dickson(squares, n, p, d):
+    """
+    Dickson said that Tonelli gave a formula for solving squares of
+    quadratic residues in the mod of a prime power so here it is I guess.
+    hope it works
+
+    :param squares: Tonelli-Shanks list of n (mod p)
+    :param n: quadratic residue
+    :param p: prime root
+    :param d: power
+    :return: list of roots r where r^2=n(mod p^d)
+    """
+    new_squares = []
+    for r in squares:
+        powmod = p ** d
+        powmod2 = p ** (d - 1)
+        nsq = (mod_pow(r, powmod2, powmod) * mod_pow(n, (powmod - (2 * powmod2) + 1) / 2, powmod)) % powmod
+        new_squares.append(nsq)
+    return new_squares
 
 
 def get_congruence_of_squares(a, b):
@@ -1020,22 +1291,28 @@ def Legendre_symbol(a, p):
     return legendre
 
 
-def generate_quadratic_residue_primes(amount, n):
+def generate_quadratic_residue_primes(amount, n, minimum=0, direction=1):
     """
     generates an amount of primes where n is a quadratic residue (mod prime)
     :param amount: amount of primes to be generated
     :param n: number that is tested to be a quadratic residue
     :return: list of primes
     """
-    primes = [2]
+    if minimum <= 2:
+        primes = [2]
+        i = 3
+    else:
+        primes = []
+        i = int(minimum)
+        if i % 2 == 0:
+            i += direction
     # basically just goes through every odd number and:
     #   does a primality test using sympy
     #   does a quadratic residue test using Euler's criterion
-    i = 3
     while len(primes) < amount:
         if sympy.isprime(i) and Legendre_symbol(n, i) == 1:
             primes.append(i)
-        i += 2
+        i += 2*direction
     return primes
 
 
