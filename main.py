@@ -46,6 +46,12 @@ def run_primality_tests(number):
     print("\r")
 
 
+def get_private_key(pub, factors):
+    totient = (factors[0]-1)*(factors[1]-1)
+    priv = Factor.extended_euclidean_algorithm(pub, totient)
+    return priv
+
+
 def remove_commas(numstr):
     return int(numstr.replace(",", ""))
 
@@ -121,7 +127,7 @@ if __name__ == '__main__':
         756023*509227,
         20809*809023
     ]
-    # for sprime in splist:
+    for sprime in splist:
     #     #sp = remove_commas(sprime)
     #     print(Factor.PQS(sprime))
     #     # t = timer(t)
@@ -129,11 +135,50 @@ if __name__ == '__main__':
     #     t = timer(t)
     #     #print(Factor.quadratic_sieve(sprime))
     #     # t = timer(t)
+        print(Factor.step_by_step(sprime))
+        t = timer(t)
     #print(len(Factor.generate_polynomial(887*557)))
-    print(Factor.PQS(502613*360181))
-    print(Factor.PQS(887*557))
-    t = timer(t)
+    #print(Factor.PQS(502613*360181))
+    #print(Factor.PQS(887*557))
+
     # print(Factor.step_by_step(502613*360181))
-    print(Factor.step_by_step(887*557))
-    # print(Factor.step_by_step(remove_commas("639,575,336,238,389,768,027,641")))
-    t = timer(t)
+    # t = timer(t)
+    # print(Factor.step_by_step(502613*360181, 282))
+    # t = timer(t)
+    # print(Factor.step_by_step(502613*360181, 306))
+    # t = timer(t)
+    # print(Factor.step_by_step(502613*360181, 310))
+    # t = timer(t)
+    # print(Factor.step_by_step(502613*360181, 312))
+    # t = timer(t)
+    # print(Factor.step_by_step(502613*360181, 330))
+    # t = timer(t)
+    # print(Factor.step_by_step(502613*360181, 346))
+    # t = timer(t)
+    # print(Factor.step_by_step(502613*360181, 348))
+    # t = timer(t)
+    # print(Factor.step_by_step(502613*360181, 358))
+
+    # print(Factor.step_by_step(887*557))
+    # print(Factor.step_by_step(887*557))
+    # print(Factor.step_by_step(remove_commas("421,357,885,598,003")*remove_commas("597,374,069,461,879")))
+    # t = timer(t)
+    # print(Factor.step_by_step(remove_commas("380,978,779,300,724,935,452,034,511,917")*remove_commas("1,133,840,581,612,979,458,722,383,048,567")))
+    # t = timer(t)
+
+    splist = [
+        956424366058369634576511997901,
+        845687515256677794057145483142257,
+        940562294173322057894192280217862479,
+        1050499240906169867321081277725674006861,
+        1010327588654592479489518715626174153572611,
+        954408344258307963167386933095470926757906833,
+        1206641416126754032441387494108570591309330651103,
+        973607460392457781571715947566555017699035751061097,
+        1259714232554985299730573571992530137288967940148051,
+        1312146826492950870824970931914634678701075368845546689397,
+        1196512127911231582816317581340375183596021484875123829415441,
+    ]
+    for sprime in splist:
+        print(Factor.step_by_step(sprime))
+        t = timer(t)
