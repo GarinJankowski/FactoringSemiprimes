@@ -3,6 +3,7 @@ import ModCalc as Mod
 import PrimeCalc as Prime
 import FactorCalc as Factor
 import MatrixCalc as Matrix
+import QuadraticSieve as QS
 import sympy
 import time
 
@@ -54,6 +55,26 @@ def get_private_key(pub, factors):
 
 def remove_commas(numstr):
     return int(numstr.replace(",", ""))
+
+
+class One:
+    def __init__(self):
+        self.my_list = []
+        self.two = Two(self.my_list)
+        self.two.add_stuff()
+        self.print_stuff()
+
+    def print_stuff(self):
+        print(self.my_list)
+
+
+class Two:
+    def __init__(self, my_list):
+        self.__my_list = my_list
+
+    def add_stuff(self):
+        for i in range(20):
+            self.__my_list.append(i)
 
 
 if __name__ == '__main__':
@@ -127,16 +148,16 @@ if __name__ == '__main__':
         756023*509227,
         20809*809023
     ]
-    for sprime in splist:
-    #     #sp = remove_commas(sprime)
-    #     print(Factor.PQS(sprime))
-    #     # t = timer(t)
-    #     #print(len(Factor.generate_polynomial(sprime)))
+    # for sprime in splist:
+    #      #sp = remove_commas(sprime)
+    #      print(Factor.PQS(sprime))
+    #      # t = timer(t)
+    #      #print(len(Factor.generate_polynomial(sprime)))
+    #      t = timer(t)
+    #      #print(Factor.quadratic_sieve(sprime))
+    #      # t = timer(t)
+    #     print(Factor.step_by_step(sprime))
     #     t = timer(t)
-    #     #print(Factor.quadratic_sieve(sprime))
-    #     # t = timer(t)
-        print(Factor.step_by_step(sprime))
-        t = timer(t)
     #print(len(Factor.generate_polynomial(887*557)))
     #print(Factor.PQS(502613*360181))
     #print(Factor.PQS(887*557))
@@ -167,6 +188,20 @@ if __name__ == '__main__':
     # t = timer(t)
 
     splist = [
+        974387 * 493351,
+        756023 * 509227,
+        20809 * 809023,
+        950959783 * 532136131,
+        731004667 * 95282753,
+        1696845001 * 3254172751
+    ]
+
+    qs = QS.QuadraticSieve()
+    for sprime in splist:
+        print(qs.factor(sprime))
+        t = timer(t)
+
+    splist = [
         956424366058369634576511997901,
         845687515256677794057145483142257,
         940562294173322057894192280217862479,
@@ -180,5 +215,6 @@ if __name__ == '__main__':
         1196512127911231582816317581340375183596021484875123829415441,
     ]
     for sprime in splist:
-        print(Factor.step_by_step(sprime))
+        print(qs.factor(sprime))
         t = timer(t)
+

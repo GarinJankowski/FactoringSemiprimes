@@ -53,7 +53,7 @@ def generate_identity(size):
     return identity
 
 
-def Gauss_Jordan_elimination(matrix, mod=0):
+def Gauss_Jordan_elimination(matrix, modulus=0):
     """
     puts a matrix in reduced row echelon form
     beware of numerical instability, idk what to do about it
@@ -78,7 +78,7 @@ def Gauss_Jordan_elimination(matrix, mod=0):
             pivot = matrix[r_pivot][c]
             # divide the pivot row by the pivot to make it 1
             for c2 in range(columns):
-                matrix[r_pivot][c2] = Mod.mod(matrix[r_pivot][c2]/pivot, mod)
+                matrix[r_pivot][c2] = Mod.mod(matrix[r_pivot][c2]/pivot, modulus)
             swap_rows(matrix, r, r_pivot)
             # set everything in the column to zero except for the pivot
             # also subtract the pivot row from each row that gets modified
@@ -87,7 +87,7 @@ def Gauss_Jordan_elimination(matrix, mod=0):
                     quotient = matrix[r2][c]/matrix[r][c]
                     matrix[r2][c] = 0
                     for c2 in range(c+1, columns):
-                        matrix[r2][c2] = Mod.mod(matrix[r2][c2]-matrix[r][c2]*quotient, mod)
+                        matrix[r2][c2] = Mod.mod(matrix[r2][c2]-matrix[r][c2]*quotient, modulus)
             r += 1
         c += 1
     return matrix
@@ -132,7 +132,7 @@ def sideways_Gauss_Jordan_elimination(matrix):
     return matrix
 
 
-def left_null_space(matrix, mod=0):
+def left_null_space(matrix, modulus=0):
     """
     augments the matrix with an identity matrix and performs Gauss-Jordan elimination
     this records the steps of the elimination onto the identity
@@ -146,7 +146,7 @@ def left_null_space(matrix, mod=0):
     for i in range(rows):
         matrix[i] += identity[i]
 
-    Gauss_Jordan_elimination(matrix, mod)
+    Gauss_Jordan_elimination(matrix, modulus)
 
     for i in range(rows):
         whole_row = list(matrix[i])

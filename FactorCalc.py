@@ -611,7 +611,6 @@ def generate_polynomial(n, factor_base, sieving_interval, t_values, min_q, z_lis
     base_size = len(factor_base)
 
     # print(len(z_list))
-    # print("POLY:", a, b, c)
     # print(b**2-a*c)
 
     factor_indices_p = copy.deepcopy(t_values)
@@ -620,7 +619,7 @@ def generate_polynomial(n, factor_base, sieving_interval, t_values, min_q, z_lis
     for i in range(len(factor_base)):
         p = factor_base[i]
         a_inverse = extended_euclidean_algorithm(a, p)
-        a_inverses.append(a_inverse)
+        # a_inverses.append(a_inverse)
         for k in range(len(factor_indices_p[i])):
             t = factor_indices_p[i][k]
             factor_indices_p[i][k] = (b + t) * -a_inverse % p
@@ -628,6 +627,7 @@ def generate_polynomial(n, factor_base, sieving_interval, t_values, min_q, z_lis
 
     # print(factor_base)
     # print(t_values)
+    # print("POLY:", a, b, c, min_q, q)
     # print(factor_indices_p)
 
     y_list = {}
@@ -919,7 +919,6 @@ def generate_polynomial_v2(n, factor_base, sieving_interval, t_values, min_a, z_
 
 
 def step_by_step(n, min_a=0):
-    print("STEP BY STEP:")
     print(n, "\nBits:", n.bit_length())
 
     num_digits = int(math.log10(n)+1)
@@ -934,6 +933,8 @@ def step_by_step(n, min_a=0):
 
     factor_base = generate_quadratic_residue_primes(base_size, n)
     t_values = [sorted(Tonelli_Shanks(n, p)) for p in factor_base]
+
+    # print("FB", len(factor_base))
 
     print("B:", base_size, "\nM:", sieving_interval)
     # print(factor_base)
@@ -1010,7 +1011,7 @@ def step_by_step(n, min_a=0):
         # factor1 = int(GCD_Stein(abs(square_a - square_b), n))
         factor1 = PrimeCalc.GCD_Stein_while(abs(root_a - root_b), n)
         if factor1 != 1 and factor1 != n:
-            print("didn't pass:", trivials)
+            # print("didn't pass:", trivials)
             return factor1, n // factor1
         else:
             # extra
