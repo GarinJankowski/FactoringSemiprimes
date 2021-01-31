@@ -37,7 +37,7 @@ def extended_euclidean_algorithm(d, mod):
     m = mod
     nd = d
     while nd != 0:
-        quotient = int(m/nd)
+        quotient = m//nd
 
         newtempinverse = inverse - (quotient*tempinverse)
         (inverse, tempinverse) = (tempinverse, newtempinverse)
@@ -55,7 +55,7 @@ def GCD_Stein_while(a, b):
     """
     Stein's Algorithm, a slightly different take on Euclid's algorithm
     gives the greatest common divisor of the params
-    Works with large numbers thanks to floor division
+    Using while loop instead of recursion because recursion limit
     :param a: positive integer
     :param b: positive integer
     :return: GCD of v and u
@@ -104,9 +104,10 @@ def Legendre_symbol(a, p):
     :param p: prime that goes with it
     :return: Legendre symbol (1, 0, or -1)
     """
+    a = a % p
     if a == 0:
         return 0
-    power = int((p-1)/2)
+    power = (p-1)//2
     legendre = mod_pow(a, power, p)
     if legendre == p-1:
         legendre = -1
@@ -172,7 +173,7 @@ def Tonelli_Shanks(n, p, Dickson=0):
     M = S
     c = mod_pow(z, Q, p)
     t = mod_pow(n, Q, p)
-    R = mod_pow(n, (Q+1)/2, p)
+    R = mod_pow(n, (Q+1)//2, p)
 
     if t == 0:
         return [0]
@@ -221,7 +222,7 @@ def Tonelli_Dickson(squares, n, p, d):
     for r in squares:
         powmod = p ** d
         powmod2 = p ** (d - 1)
-        nsq = (mod_pow(r, powmod2, powmod) * mod_pow(n, (powmod - (2 * powmod2) + 1) / 2, powmod)) % powmod
+        nsq = (mod_pow(r, powmod2, powmod) * mod_pow(n, (powmod - (2 * powmod2) + 1) // 2, powmod)) % powmod
         new_squares.append(nsq)
     return new_squares
 
