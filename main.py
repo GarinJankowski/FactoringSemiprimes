@@ -86,3 +86,11 @@ if __name__ == '__main__':
         qs.factor(sprime)
         t = timer(t)
 
+"""
+need to be done:
+Comp org hw
+CS lab
+CS paper review
+linked in
+all this linear algebra stuff
+"""

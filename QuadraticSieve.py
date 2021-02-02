@@ -22,19 +22,16 @@ class QuadraticSieve:
         if print_things:
             print(self.n)
             print("\tBits: ", self.n.bit_length(), ", Digits: ", int(math.log10(self.n)+1), sep="")
-
         self.__setup_values()
 
         if print_things:
             print("\tBase size: ", self.base_size, "\n\tM: ", self.sieving_interval, sep="")
             print("Generating relations...")
-
         num_polys = self.__run_polynomials()
 
         if print_things:
             print("\tPolynomials:", num_polys)
             print("Solving matrix...")
-
         self.__find_matrix_solutions()
         factors = self.__run_matrix_solutions()
 
